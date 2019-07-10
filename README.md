@@ -1,4 +1,5 @@
 # EMW pipeline using Nextflow & Docker 
+[Docker image's components](https://github.com/alabrashJr/emw_pipeline_docker)
 
 ## Prerequisite
 
@@ -69,3 +70,27 @@ nextflow run rna-ex6.nf -resume --input 'data/*_{1,2}.html' --outdir results_out
 You will find the outputs produced by the pipeline in the `results_output` folder.
 
 
+Flowchart, 
+-----------
+                                     HTML Pages
+                                        |
+                                        |
+                                        |
+                                        |
+                                       / \
+                        Clean & Parser      DCTFinder
+                             |
+                             |
+                             |
+                             |
+                         classifier                          
+                             |
+                             |
+                             |          N O 
+                         if protest ----------
+                             |
+                             |Y
+                             |E
+                             |S
+                            /  \
+                  placeTragger  TemproalTragger
