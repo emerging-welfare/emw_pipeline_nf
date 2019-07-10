@@ -84,14 +84,6 @@ def summarizedf(ds,gby="filename",toexcel=True):
         if toexcel :pd.DataFrame(dicss).to_excel("Process_Summary"+time.strftime("%H-%M-%Y%m%d")+".xlsx")
     return pd.DataFrame(dicss)
 
-def outputFilter (nfo):
-    nfOutput=[]
-    for i,x in enumerate(nfo):
-        if len(x)==5:
-           nfOutput=nfo[i+1:] 
-           break
-    return nfOutput
-
 def getAlldir(df,file):
     for _,p in df.iterrows():
         #if _ < 4 : continue;
@@ -113,9 +105,8 @@ def getAlldir(df,file):
 if __name__ == "__main__":
     workdir=os.path.join(os.getcwd(),"work")
     args=get_args()
-    wl=executeNF("run emw_pipeline.nf"+args) 
-    nfop=outputFilter(wl)
-    df=getAlldir(todf(nfop),workdir)
+    wl=executeNF("run emw_pipeline.nf"+args)
+    df=getAlldir(todf(wl),workdir)
     df.sort_values(by=["fileName","OLast_modified_date"]).set_index("fileName").to_excel(time.strftime("%H-%M-%Y%m%d")+".xlsx")
     ds=summarizedf(df)
     print("All done\n","Reports have been created successfully")
