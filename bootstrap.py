@@ -3,8 +3,30 @@ import os
 import time 
 import requests
 import json
-import pandas  as pd 
+import pandas  as pd
+import argparse 
 
+def get_args():
+    '''
+    This function parses and return arguments passed in
+    '''
+    parser = argparse.ArgumentParser(prog='bootstrap.py',
+                                     description='bootstrap is a script to execute nextflow and generate reports ')
+    parser.add_argument('--input', help="""--input <input dir/input pattern> inputpath/pattern of input file """,nargs='?',default=None)
+    parser.add_argument('-resume',help="""The `-resume` option skips the execution of any step that has been processed in a previous 
+execution. """,action='store_true')
+    parser.add_argument('--output',help="output folder name",nargs='?',default=None)
+	
+    args = parser.parse_args()                                                                 
+    parameters=""
+    if args.input is not None:
+        parameters=parameters+"--input {0}".format(args.input)
+    if args.resume:
+        parameters=parameters+" -resume"
+    if args.output is not None:
+        parameters=parameters+" --output {0}".format(args.output)
+                                     
+    return(parameters)
 
 def executeNF(fname):
     _="nextflow "+fname
@@ -32,6 +54,7 @@ def todf(wl):
         df["OCreated_date"]=None
         df["class_number"]=df["class_number"].str.strip("()")
         df=df[~df["hashing"].isnull()]
+        df=df[df["processes"]=="Submitted process"]
         return df
     except Exception as err:
         print(wl,"\n",err.with_traceback())
@@ -44,7 +67,6 @@ def summarizedf(ds,gby="filename",toexcel=True):
     gr=ds.groupby(["fileName"])
     dicss=[]
     for key,value in gr.groups.items():
-        print("key",key)
         places=None
         tt=None
         _=value.tolist()
@@ -58,10 +80,17 @@ def summarizedf(ds,gby="filename",toexcel=True):
                 tt=ds.ix[_][ds.ix[_]["class_name"]=="temporalTagger"]["Opreview"].tolist()[0][1:]
         fInfo["places"]=places
         fInfo["temporalTagger"]=tt
-        print(fInfo)
         dicss.append(fInfo)
         if toexcel :pd.DataFrame(dicss).to_excel("Process_Summary"+time.strftime("%H-%M-%Y%m%d")+".xlsx")
     return pd.DataFrame(dicss)
+
+def outputFilter (nfo):
+    nfOutput=[]
+    for i,x in enumerate(nfo):
+        if len(x)==5:
+           nfOutput=nfo[i+1:] 
+           break
+    return nfOutput
 
 def getAlldir(df,file):
     for _,p in df.iterrows():
@@ -82,25 +111,11 @@ def getAlldir(df,file):
     return df
 
 if __name__ == "__main__":
-    while 1:
-        try:
-            r = requests.get(url = "http://localhost:5000/")
-            print("SVM Classifier is working, type . \'tmux attach -t SVM_Classifier\' ")
-            print(r.text)
-            break
-        except Exception:
-            print("docker server is not up yet\n please make sure that your docker is running")
-            #myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm && docker-compose up\'').read()
-            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm &&  python runSVM.py \'').read()
-            print(myCmd)
-            time.sleep(5)
-
     workdir=os.path.join(os.getcwd(),"work")
-    wl=executeNF("example1.nf") 
-    df=getAlldir(todf(wl),workdir)
-
+    args=get_args()
+    wl=executeNF("run emw_pipeline.nf"+args) 
+    nfop=outputFilter(wl)
+    df=getAlldir(todf(nfop),workdir)
     df.sort_values(by=["fileName","OLast_modified_date"]).set_index("fileName").to_excel(time.strftime("%H-%M-%Y%m%d")+".xlsx")
     ds=summarizedf(df)
     print("All done\n","Reports have been created successfully")
-    print("SVM Classifier is trunned off")
-    print(os.popen("tmux kill-session -t SVM_Classifier").read())
