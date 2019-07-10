@@ -22,6 +22,7 @@ Finally, clone this repository with the following command:
 
 ```
 git clone https://github.com/alabrashJr/emw_pipeline_nf.git
+pip install -r requirements.txt
 python bootstrap.py
 ```
 
