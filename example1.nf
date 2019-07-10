@@ -15,7 +15,7 @@ process clean {
 
     script:
         """
-        clean.py $fa
+      clean.py $fa
         """
 }
 process DTC {
@@ -26,7 +26,7 @@ process DTC {
         //stdout DTC_result
     script:
     """
-    PublishDateGraper_DTC-nextflow.py $fa
+     PublishDateGraper_DTC-nextflow.py $fa
     """
 }
 //DTC_result.subscribe { println it }
