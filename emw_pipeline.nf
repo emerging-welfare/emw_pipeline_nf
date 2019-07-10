@@ -1,15 +1,15 @@
 #!/usr/bin/env nextflow
 import groovy.json.JsonSlurper
-params.fasta = "$baseDir/data/*.html"
-params.results = "$baseDir/results"
+params.input = "$baseDir/data/*.html"
+params.outdir = "$baseDir/results"
 
-fasta = Channel.fromPath(params.fasta)
-fasta2=Channel.fromPath(params.fasta)
+inChannelA = Channel.fromPath(params.input)
+inChannelB=Channel.fromPath(params.input)
 
 
 process clean {
     input:
-    file(fa) from fasta
+    file(fa) from inChannelA
     output:
         file("*.clean.json") into channelA
 
@@ -20,7 +20,7 @@ process clean {
 }
 process DTC {
     input:
-        file(fa) from fasta2
+        file(fa) from inChannelB
     output:
         file("*.DTC.json") into DTC_out
         //stdout DTC_result
