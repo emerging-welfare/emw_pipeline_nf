@@ -33,7 +33,7 @@ def executeNF(fname):
     nf= os.popen(_).read()
     Slist=nf.split("\n")
     worklist=[]
-    for x in range(3,len(Slist)):
+    for x in range(len(Slist)):
          worklist.append(Slist[x])
     
     return [w.split() for w in worklist]
@@ -67,8 +67,8 @@ def summarizedf(ds,gby="filename",toexcel=True):
     gr=ds.groupby(["fileName"])
     dicss=[]
     for key,value in gr.groups.items():
-        places=None
-        tt=None
+        places="not available since the file is not protest"
+        tt="not available since the file is not protest"
         _=value.tolist()
         fInfo=ds.ix[_][ds.ix[_]["class_name"]=="clean"]["Opreview"].tolist()[0]
         output=ds.ix[_][ds.ix[_]["class_name"]=="classifier"]["Opreview"].tolist()[0]["output"]
@@ -81,8 +81,10 @@ def summarizedf(ds,gby="filename",toexcel=True):
         fInfo["places"]=places
         fInfo["temporalTagger"]=tt
         dicss.append(fInfo)
-        if toexcel :pd.DataFrame(dicss).to_excel("Process_Summary"+time.strftime("%H-%M-%Y%m%d")+".xlsx")
-    return pd.DataFrame(dicss)
+    df_smrized=pd.DataFrame(dicss)
+    df_smrized=df_smrized[["identifier","protest","title","length","places","temporalTagger","DTC","text"]].sort_values(by=["protest"],ascending=[False])
+    if toexcel :df_smrized.to_excel("Process_Summary"+time.strftime("%H-%M-%Y%m%d")+".xlsx")
+    return df_smrized
 
 def getAlldir(df,file):
     for _,p in df.iterrows():
@@ -101,11 +103,18 @@ def getAlldir(df,file):
         df.at[_,"OLast_modified_date"]=time.ctime(os.path.getmtime(path))
         df.at[_,"OCreated_date"]=time.ctime(os.path.getctime(path))
     return df
+def NFfilter(nfin):
+    workls=[]
+    for x in nfin:
+        if len(x)==6:
+            workls.append(x)
+    return workls
 
 if __name__ == "__main__":
     workdir=os.path.join(os.getcwd(),"work")
     args=get_args()
-    wl=executeNF("run emw_pipeline.nf"+args)
+    nfou=executeNF("run emw_pipeline.nf"+args)
+    wl=NFfilter(nfou)
     df=getAlldir(todf(wl),workdir)
     df.sort_values(by=["fileName","OLast_modified_date"]).set_index("fileName").to_excel(time.strftime("%H-%M-%Y%m%d")+".xlsx")
     ds=summarizedf(df)
