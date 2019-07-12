@@ -21,6 +21,7 @@ nextflow
 Finally, clone this repository with the following command: 
 
 ```
+docker pull alabrashjr/emw_pipeline:v1.2
 git clone https://github.com/alabrashJr/emw_pipeline_nf.git
 pip install -r requirements.txt
 python bootstrap.py
@@ -28,7 +29,7 @@ python bootstrap.py
 
 Try to specify a different input parameter, for example: 
 
-## Parameters
+## Parameters (is not tested yet)
 
 * input 
 ```
