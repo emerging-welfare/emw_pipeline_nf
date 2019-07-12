@@ -98,10 +98,11 @@ Flowchart,
                   placeTragger  TemproalTragger
 
 ##  Comprehensive Version 
-There is a comprehensive of docker image is available that containes all relvent repos [docker image](https://hub.docker.com/r/alabrashjr/emw_nextflow_pipeline).
+You easily run the pipeline through, 
+A comprehensive docker image which containes all relvent repos. [docker image](https://hub.docker.com/r/alabrashjr/emw_nextflow_pipeline).
 
 ```
 docker pull emw_nextflow_pipeline:latest
-docker run -m 7GB --cpus=3 -e _JAVA_OPTIONS=“-Xmx7 --name  <container_name> -it alabrashjr emw_nextflow_pipeline:latest  /bin/bash
+docker run -m 7GB --cpus=3 --name  <container_name> -it alabrashjr/emw_nextflow_pipeline:latest  /bin/bash
 python bootstrap.py
 ```
