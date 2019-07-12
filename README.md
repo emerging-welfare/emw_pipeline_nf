@@ -98,7 +98,7 @@ Flowchart,
                   placeTragger  TemproalTragger
 
 ##  Comprehensive Version 
-There is  comprehensive [docker image](https://hub.docker.com/r/alabrashjr/emw_nextflow_pipeline) which include both the two repos, 
+There is a comprehensive of docker image is available that containes all relvent repos [docker image](https://hub.docker.com/r/alabrashjr/emw_nextflow_pipeline).
 
 ```
 docker pull emw_nextflow_pipeline:latest
