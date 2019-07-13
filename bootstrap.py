@@ -111,6 +111,18 @@ def NFfilter(nfin):
     return workls
 
 if __name__ == "__main__":
+    while 1:
+        try:
+            r = requests.get(url = "http://localhost:5000/")
+            print("SVM Classifier is working, type . \'tmux attach -t SVM_Classifier\' ")
+            print(r.text)
+            break
+        except Exception:
+            print("docker server is not up yet\n please make sure that your docker is running")
+            #myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm && docker-compose up\'').read()
+            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm &&  python runSVM.py \'').read()
+            print(myCmd)
+            time.sleep(5)
     workdir=os.path.join(os.getcwd(),"work")
     args=get_args()
     nfou=executeNF("run emw_pipeline.nf"+args)
