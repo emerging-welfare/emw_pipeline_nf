@@ -77,7 +77,7 @@ def summarizedf(ds,gby="filename",toexcel=True):
         fInfo["DTC"]=dtc
         if(int(output)==1):
                 places=ds.ix[_][ds.ix[_]["class_name"]=="placeTagger"]["Opreview"].tolist()[0][1:]
-                tt=ds.ix[_][ds.ix[_]["class_name"]=="temporalTagger"]["Opreview"].tolist()[0][1:]
+                tt=ds.ix[_][ds.ix[_]["class_name"]=="temporalTagger"]["Opreview"].tolist()[0]["temporalTagger"]
         fInfo["places"]=places
         fInfo["temporalTagger"]=tt
         dicss.append(fInfo)
@@ -114,15 +114,26 @@ if __name__ == "__main__":
     while 1:
         try:
             r = requests.get(url = "http://localhost:5000/")
-            print("SVM Classifier is working, type . \'tmux attach -t SVM_Classifier\' ")
+            print("SVM Classifier API is working, type . \'tmux attach -t SVM_Classifier\' ")
             print(r.text)
             break
         except Exception:
-            print("docker server is not up yet\n please make sure that your docker is running")
-            #myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm && docker-compose up\'').read()
-            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm &&  python runSVM.py \'').read()
+            print("SVM Classifier API  is not up yet")
+            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm &&  docker-compose up \'').read()
             print(myCmd)
-            time.sleep(5)
+            time.sleep(20)
+    while 1:
+        try:
+            r = requests.get(url = "http://localhost:12345/")
+            print("TT API is working, type . \'tmux attach -t TT \' ")
+            print(r.text)
+            break
+        except Exception:
+            print("TT API is not up yet")
+            myCmd = os.popen('tmux new-session -d -s TT \'cd python-sutime &&  docker-compose up \'').read()
+            print(myCmd)
+            time.sleep(70)
+    
     workdir=os.path.join(os.getcwd(),"work")
     args=get_args()
     nfou=executeNF("run emw_pipeline.nf"+args)
@@ -131,3 +142,9 @@ if __name__ == "__main__":
     df.sort_values(by=["fileName","OLast_modified_date"]).set_index("fileName").to_excel(time.strftime("%H-%M-%Y%m%d")+".xlsx")
     ds=summarizedf(df)
     print("All done\n","Reports have been created successfully")
+    print("All docker containers are being shut down ")
+    print(os.popen("docker rm -f \'python-sutime_temporal-tagger_1\' \'svm_svm_1\'").read())
+    try:print(os.popen("tmux kill-session -t SVM_Classifier").read())
+    except Exception:print("SVM_Classifier tmux session is not opened")
+    try:print(os.popen("tmux kill-session -t TT").read())
+    except Exception:print("TT tmux session is not opened")
