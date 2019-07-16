@@ -1,106 +1,98 @@
 #!/usr/bin/env nextflow
 import groovy.json.JsonSlurper
-params.input = "$baseDir/data/*.html"
+
+params.input = "$baseDir/data/http*"
 params.outdir = "$baseDir/results"
+params.source_lang = "English"
+params.source = 4
 
-inChannelA = Channel.fromPath(params.input)
-inChannelB=Channel.fromPath(params.input)
+html_channel = Channel.fromPath(params.input)
 
-
-process clean {
+process extract {
     input:
-    file(fa) from inChannelA
+        file(filename) from html_channel
     output:
-        file("*.clean.json") into channelA
-
+        set val(out_json) file(filename) into extract_out
     script:
+	if ( params.source == 1 )
         """
-      clean.py $fa
+	    python3 bin/extract/justext_gettext.py --input_file $filename --source_lang $params.source_lang
+	"""
+	else if ( params.source == 2 )
         """
+	    python2 bin/extract/goose_gettext.py --input_file $filename
+	"""
+	else if ( params.source == 3 )
+        """
+	    python2 bin/extract/goose_gettext.py --input_file $filename
+	"""
+	else if ( params.source == 4 )
+        """
+	    python2 bin/extract/boilerpipe_gettext.py --input_file $filename
+	"""
+	else if ( params.source == 5 )
+        """
+	    python2 bin/extract/boilerpipe_gettext.py --input_file $filename --no_byte
+	"""
+	else if ( params.source == 6 )
+        """
+	    python2 bin/extract/boilerpipe_gettext.py --input_file $filename
+	"""
+	else
+	    error "No source as : ${params.source}"
 }
+
 process DTC {
     input:
-        file(fa) from inChannelB
+        set val(in_json) file(filename) from extract_out
     output:
-        file("*.DTC.json") into DTC_out
-        //stdout DTC_result
+        set val(out_json) file(filename) into DTC_out
     script:
-    """
-     PublishDateGraper_DTC-nextflow.py $fa
-    """
+        """
+        python3 bin/PublishDateGraper_DTC-nextflow.py --input_file $filename --data in_json
+        """
 }
-//DTC_result.subscribe { println it }
 
+process doc_preprocess {
+    input:
+        set val(in_json) file(filename) from DTC_out
+    output:
+        val(out_json) into preprocess_out
+    script:
+        """
+	python3 bin/doc_preprocess.py --input_file $filename --data $in_json --source $params.source
+	"""
+}
 
 process classifier {
     input:
-        file(fa) from channelA
-
+        val(in_json) from preprocess_out
     output:
-        file("*.*classifier.json") into (channelB,channelC)
-        //dene1=Channel.from(channelB)
-       // stdout ChannelL
-
+        set val(out_json) val(label) into classifier_out
     script:
-
         """
-        classifier.py $fa
+        python3 bin/classifier.py --data $in_json
         """
 }
-
-//ChannelL.subscribe { println it }
-
 
 process placeTagger {
-input:
-file(fa) from channelB
-// output:
-// file("*.placeTagger.json") into PT_out
-//stdout PC_result
-script:
-//println( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ )
-if ( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ ){
-    """
-        placeTagger.py $fa
-     """
-    }
-else{
-    """
-        echo '{"identifier":"$fa","status":"non protest" }' > placeTagger.json
-    """
-}
-        
-// """
-// placeTagger.py $fa
-// """
+    input:
+        set val(in_json) val(label) from classifier_out
+    output:
+        val(out_json) into place_out
+    when:
+        label == 1
+    script:
+        """
+        python3 bin/placeTagger.py --data $in_json
+        """
 }
 
 process temporalTagger {
-input:
-file(fa) from channelC
-
-// output:
-// file("*.temporalTagger.json") into TT_out
-
-script:
-if ( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ ){
-   """
-    temporalTagger.py $fa
-    """
-    }
-else{
-    """
-    echo '{"identifier":"$fa","status":"non protest" }' > temporalTagger.json
-
-    """
+    input:
+        val(in_json) from place_out
+    script:
+        """
+        python3 bin/temporalTagger.py --data $in_json
+        """
 }
-
-}
-// Channel
-//     .from( '5.classifier.json', '6.classifier.json','emo.classifier.json',"3.0classifier.json","demo1.0classifier.json","demo2.0classifier.json")
-//     .filter( ~/^[a-zA-Z0-9]*\.classifier\.json$/ )
-//     .subscribe { println it }
-
-
-
-
