@@ -19,4 +19,6 @@ def write_to_json(data, filename):
     except:
         pass # Can be logged and handled
 
+def dump_to_json(data):
+    return json.dumps(data, ensure_ascii=False, sort_keys=True)
     # ["id", "text","title","length","creation_time","last_update_time","temporal_tags"->span_list,"place_names"->object_list,"participants"->span_list,"organizers"->span_list,"targets"->span_list,"triggers"->span_list,"targets"->span_list]

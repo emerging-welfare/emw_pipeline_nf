@@ -1,11 +1,10 @@
 from goose import Goose
-from utils import remove_path # !!!
-from utils import write_to_json # !!!
+from ..utils import remove_path
+from ..utils import dump_to_json
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', help="Path to input file")
-    parser.add_argument('out_dir', help="Path to output directory. Must contain '/' at the end.")
     args = parser.parse_args()
     return args
 
@@ -19,8 +18,9 @@ def main(args):
     article = g.extract(raw_html=html_string)
     data["text"] = text
     data["id"] = filename
-    write_to_json(data, args.out_dirs + filename + ".json")
+    data = dump_to_json(data)
+    return data, args.input_file
 
 if __name__ == "__main__":
     args = get_args()
-    main(args)
+    return main(args)

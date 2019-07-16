@@ -8,6 +8,13 @@ params.source = 4
 
 html_channel = Channel.fromPath(params.input)
 
+// Source 1 times
+// Source 2 newind
+// Source 3 ind
+// Source 4 thehin
+// Source 5 scm
+// Source 6 people
+
 process extract {
     input:
         file(filename) from html_channel
