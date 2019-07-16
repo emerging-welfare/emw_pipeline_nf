@@ -2,22 +2,10 @@
 import markdown
 import os
 import shelve
-import pandas as pd
-import numpy as np
-from nltk.tokenize import word_tokenize
-from nltk import pos_tag
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict
-from nltk.corpus import wordnet as wn
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import model_selection, naive_bayes, svm
-from sklearn.metrics import accuracy_score
-import seaborn as sns
+from sklearn import svm
 import json
-from sklearn.metrics import classification_report
-from sklearn.model_selection import GridSearchCV
 import os
 from nltk import sent_tokenize
 
@@ -114,8 +102,6 @@ class Device(Resource):
         return '', 204
 
 
-
-np.random.seed(500)
 file = '20180919_protest_classifier-Matthews-70onTest29onChina.pickle'
 global classifer
 with open(file,"rb") as f :

@@ -119,7 +119,7 @@ if __name__ == "__main__":
             break
         except Exception:
             print("SVM Classifier API  is not up yet")
-            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm &&  docker-compose up \'').read()
+            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm && sudo docker-compose up \'').read()
             print(myCmd)
             time.sleep(20)
     while 1:
@@ -130,7 +130,7 @@ if __name__ == "__main__":
             break
         except Exception:
             print("TT API is not up yet")
-            myCmd = os.popen('tmux new-session -d -s TT \'cd python-sutime &&  docker-compose up \'').read()
+            myCmd = os.popen('tmux new-session -d -s TT \'cd python-sutime && sudo docker-compose up \'').read()
             print(myCmd)
             time.sleep(70)
     

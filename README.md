@@ -13,16 +13,24 @@ Install Nextflow with miniconda by using the following command:
 
 ```
 conda create --name <env-name> python==3.6.4 --yes
-conda activate <env-name>
+source activate <env-name> # or conda activate <env-name>
 conda install -c bioconda nextflow==18.10.1 --yes
 nextflow
 ```
-    
+Installing tmux 
+for MacOS,
+```
+brew install tmux
+```
+for Linux
+```
+apt-get install tmux
+```
 Finally, clone this repository with the following command: 
 
 ```
-docker pull alabrashjr/emw_pipeline:v1.2
 git clone https://github.com/alabrashJr/emw_pipeline_nf.git
+cd emw_pipeline_nf
 pip install -r requirements.txt
 python bootstrap.py
 ```
