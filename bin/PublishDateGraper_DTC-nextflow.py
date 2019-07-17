@@ -1,30 +1,20 @@
 #!/usr/bin/env python
-
-import os,subprocess
+import subprocess
 from subprocess import STDOUT,PIPE,CalledProcessError
 import argparse
 import json
+from utils import load_from_json
+from utils import dump_to_json
 
 def get_args():
     parser = argparse.ArgumentParser(prog='PublishDateGraper_DTC-nextflow.py',
                                          description='extract PD from webpages')
-    parser.add_argument('path', help="path to input file")
-
+    parser.add_argument('--input_dir', help="path to input file")
+    parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--no_byte', help="If html file needs to be read with 'r' tag.", action="store_true")
     args = parser.parse_args()
-
-    infile = args.path
                                      
-    return(infile)
-
-def get_basename(filename):
-    dotsplit = filename.split(".")
-    if len(dotsplit) == 1 :
-        basename = filename
-    else:
-        basename = ".".join(dotsplit[:-1])
-        if len(basename.split("."))!=1:
-            basename = ".".join(basename.split(".")[:-1])
-    return(basename)
+    return(args)
 
 def compile_java(compileCmd):
     try:
@@ -34,6 +24,7 @@ def compile_java(compileCmd):
         return stdout
     except  CalledProcessError as e:
         print (e)
+
 def execute_java(excuteCmd):
     try:
         cmd = excuteCmd.split()
@@ -43,21 +34,26 @@ def execute_java(excuteCmd):
         return stdout[1]
     except  CalledProcessError as e:
         print (e)
-    
-
-
 
 if __name__ == "__main__":
-    jardir="/nextflow_test/bin/DTC_Nextflow"
-    INFILE = get_args()
-    OUTFILE = get_basename(INFILE)+".DTC.json"
-    content=''
-    with open(OUTFILE, "w") as fw:
-        with open (INFILE,'r',encoding="latin1") as fr:
-            content=fr.read()
-        compileCmd='javac -cp .:{0}/dct-finder-2015-01-22.jar:{0}/commons-lang3-3.8.1.jar:{0}/commons-cli-1.4.jar  {0}/main.java -d .'.format(jardir)
-        excuteCmd = 'java -cp .:{0}/dct-finder-2015-01-22.jar:{0}/commons-lang3-3.8.1.jar:{0}/commons-cli-1.4.jar DTC_Nextflow.main {1}' .format(jardir,content)
-        compiled=compile_java(compileCmd)
-        pd=execute_java(excuteCmd)
-        output={"identifier":get_args(),"publish data":pd}
-        json.dump(output,fw, indent=4)
+    jardir="/emw_pipeline_nf/bin/DTC_Nextflow"
+    args = get_args()
+    with open("asd", "w") as f:
+        f.write(args.data)
+    data = load_from_json(args.data)
+    filename = args.input_dir + "/" + data["id"]
+
+    if args.no_byte:
+        with open(filename,'r') as fr:
+            html_string = str(fr.read())
+    else:
+        with open(filename,'rb') as fr:
+            html_string = str(fr.read())
+
+    compileCmd = 'javac -cp .:{0}/dct-finder-2015-01-22.jar:{0}/commons-lang3-3.8.1.jar:{0}/commons-cli-1.4.jar  {0}/main.java -d .'.format(jardir)
+    excuteCmd = 'java -cp .:{0}/dct-finder-2015-01-22.jar:{0}/commons-lang3-3.8.1.jar:{0}/commons-cli-1.4.jar DTC_Nextflow.main {1}' .format(jardir, html_string)
+    compiled = compile_java(compileCmd)
+    pd = execute_java(excuteCmd)
+    data["publish_time"] = pd
+
+    print(dump_to_json(data))

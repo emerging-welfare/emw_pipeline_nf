@@ -1,13 +1,15 @@
+import argparse
 import re
 import lxml.html
 from fuzzywuzzy import fuzz
 from utils import dump_to_json
+from utils import load_from_json
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help="Path to input file")
-    parser.add_argument('data', help="Serialized json string")
-    parser.add_argument('source', help="Source of the article")
+    parser.add_argument('--input_dir', help="Path to input file")
+    parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--source', help="Source of the article")
     args = parser.parse_args()
     return args
 
@@ -33,7 +35,7 @@ def deletesamesubstr(lines):
 
 def deletecertainstr(lines, stoplist1=None, stoplist2=None, stoplist3=None):
 
-    if stoplist1 not None:
+    if stoplist1 is not None:
         for i in range(0,len(lines)):
             firstline = lines[i]
             firstline = firstline.strip()
@@ -42,7 +44,7 @@ def deletecertainstr(lines, stoplist1=None, stoplist2=None, stoplist3=None):
                     del lines[i]
                 break
 
-    if stoplist2 not None:
+    if stoplist2 is not None:
         n = 0
         while n < len(lines)-1:
             if not lines[n]:
@@ -54,7 +56,7 @@ def deletecertainstr(lines, stoplist1=None, stoplist2=None, stoplist3=None):
                 continue
             n = n + 1
 
-    if stoplist3 not None:
+    if stoplist3 is not None:
         firsttime = True
         for i in range(0,len(lines)):
             firstline = lines[i]
@@ -221,11 +223,12 @@ def main(args):
     # Source 5 scm
     # Source 6 people
 
-    with open(args.input_file, "rb") as g:
+    data = load_from_json(args.data)
+    filename = args.input_dir + "/" + data["id"]
+
+    with open(filename, "rb") as g:
         html_string = g.read()
 
-    filename = remove_path(filename)
-    data = json.loads(args.data)
     text = data["text"].splitlines()
 
     stoplist1 = None
@@ -272,4 +275,5 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_args()
-    return main(args)
+    data = main(args)
+    print(data)

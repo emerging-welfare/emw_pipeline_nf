@@ -1,0 +1,4 @@
+# These are reqs for python2
+JPype1==0.6.3
+boilerpipe==1.3.0.0
+goose-extractor==1.0.25

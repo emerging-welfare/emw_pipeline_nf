@@ -16,8 +16,8 @@ def get_args():
     parser.add_argument('-resume',help="""The `-resume` option skips the execution of any step that has been processed in a previous 
 execution. """,action='store_true')
     parser.add_argument('--output',help="output folder name",nargs='?',default=None)
-	
-    args = parser.parse_args()                                                                 
+
+    args = parser.parse_args()
     parameters=""
     if args.input is not None:
         parameters=parameters+"--input {0}".format(args.input)
@@ -59,10 +59,12 @@ def todf(wl):
     except Exception as err:
         print(wl,"\n",err.with_traceback())
         raise RuntimeError()
+
 def getFFN(path,stratW):
     for x in os.listdir(path):
         if (x.startswith(stratW)):
             return os.path.join(path,x)
+
 def summarizedf(ds,gby="filename",toexcel=True):
     gr=ds.groupby(["fileName"])
     dicss=[]
@@ -103,6 +105,7 @@ def getAlldir(df,file):
         df.at[_,"OLast_modified_date"]=time.ctime(os.path.getmtime(path))
         df.at[_,"OCreated_date"]=time.ctime(os.path.getctime(path))
     return df
+
 def NFfilter(nfin):
     workls=[]
     for x in nfin:
@@ -110,30 +113,7 @@ def NFfilter(nfin):
             workls.append(x)
     return workls
 
-if __name__ == "__main__":
-    while 1:
-        try:
-            r = requests.get(url = "http://localhost:5000/")
-            print("SVM Classifier API is working, type . \'tmux attach -t SVM_Classifier\' ")
-            print(r.text)
-            break
-        except Exception:
-            print("SVM Classifier API  is not up yet")
-            myCmd = os.popen('tmux new-session -d -s SVM_Classifier \'cd svm && sudo docker-compose up \'').read()
-            print(myCmd)
-            time.sleep(20)
-    while 1:
-        try:
-            r = requests.get(url = "http://localhost:12345/")
-            print("TT API is working, type . \'tmux attach -t TT \' ")
-            print(r.text)
-            break
-        except Exception:
-            print("TT API is not up yet")
-            myCmd = os.popen('tmux new-session -d -s TT \'cd python-sutime && sudo docker-compose up \'').read()
-            print(myCmd)
-            time.sleep(70)
-    
+if __name__ == "__main__":    
     workdir=os.path.join(os.getcwd(),"work")
     args=get_args()
     nfou=executeNF("run emw_pipeline.nf"+args)
