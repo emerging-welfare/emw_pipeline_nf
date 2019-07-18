@@ -4,12 +4,13 @@ from subprocess import STDOUT,PIPE,CalledProcessError
 import argparse
 import json
 from utils import load_from_json
-from utils import dump_to_json
+from utils import write_to_json
 
 def get_args():
     parser = argparse.ArgumentParser(prog='PublishDateGraper_DTC-nextflow.py',
                                          description='extract PD from webpages')
-    parser.add_argument('--input_dir', help="path to input file")
+    parser.add_argument('--input_dir', help="path to input folder")
+    parser.add_argument('--out_dir', help="path to output folder")
     parser.add_argument('--data', help="Serialized json string")
     parser.add_argument('--no_byte', help="If html file needs to be read with 'r' tag.", action="store_true")
     args = parser.parse_args()
@@ -56,4 +57,4 @@ if __name__ == "__main__":
     pd = execute_java(excuteCmd)
     data["publish_time"] = pd
 
-    print(dump_to_json(data))
+    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import markdown
 import os
 import shelve
 from sklearn.preprocessing import LabelEncoder
@@ -41,15 +40,14 @@ def index():
 
     # Convert to HTML
     if classifer is not None :
-        return markdown.markdown("classifier is loaded")
+        # return markdown.markdown("classifier is loaded")
+        return "<html><body><p>classifier is loaded</p></body></html>"
     else :
-        return markdown.markdown("classifier is not loaded")
-
+        return "<html><body><p>classifier is not loaded</p></body></html>"
+        # return markdown.markdown("classifier is not loaded")
 
 def predict (input):
    return  classifer.predict([input])[0]
-
-
 
 class queryList(Resource):
     def get(self):
@@ -69,14 +67,14 @@ class queryList(Resource):
         parser.add_argument('identifier', required=True)
         parser.add_argument('text', required=True)
         parser.add_argument('output', required=False)
-        parser.add_argument('eventSenteces', required=False)
+        parser.add_argument('event_sentences', required=False)
         # Parse the arguments into an object
         args = parser.parse_args()
-        output=predict(args['text'])
+        output = predict(args['text'])
         shelf = get_db()
         shelf[args['identifier']] = args
-        args["output"]=str(int(output))
-        args["eventSenteces"]=sent_tokenize(args['text'])[0:2]
+        args["output"] = str(int(output))
+        args["event_sentences"] = sent_tokenize(args['text'])
         #return {'message': 'Query registered', 'data': args,'output':a_str }, 201
         return args, 201
 
@@ -102,7 +100,7 @@ class Device(Resource):
         return '', 204
 
 
-file = '/new_pipeline/bin/classifier/20180919_protest_classifier-Matthews-70onTest29onChina.pickle'
+file = '/emw_pipeline_nf/bin/classifier/20180919_protest_classifier-Matthews-70onTest29onChina.pickle'
 global classifer
 with open(file,"rb") as f :
     classifer= pickle.load(f)

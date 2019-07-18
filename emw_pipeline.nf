@@ -3,7 +3,7 @@
 
 params.input_dir = "$baseDir/data"
 params.input = "$params.input_dir/*html"
-params.outdir = "$params.input_dir/../jsons"
+params.outdir = "$params.input_dir/../jsons/"
 params.source_lang = "English"
 params.source = 4
 
@@ -20,63 +20,44 @@ process extract {
     input:
         file(filename) from html_channel
     output:
-//        set val(out_json) file(filename) into extract_out
         stdout(out_json) into extract_out
     script:
 	if ( params.source == 1 )
         """
-	    python3 /new_pipeline/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
+	    python3 /emw_pipeline_nf/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
 	"""
 	else if ( params.source == 2 )
         """
-	    python2 /new_pipeline/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	    python2 /emw_pipeline_nf/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
 	"""
 	else if ( params.source == 3 )
         """
-	    python2 /new_pipeline/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	    python2 /emw_pipeline_nf/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
 	"""
 	else if ( params.source == 4 )
         """
-	    python2 /new_pipeline/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
 	"""
 	else if ( params.source == 5 )
         """
-	    python2 /new_pipeline/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
 	"""
 	else if ( params.source == 6 )
         """
-	    python2 /new_pipeline/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
 	"""
 	else
 	    error "No source as : ${params.source}"
 }
 
-process DTC {
-    input:
-//        set val(in_json) file(filename) from extract_out
-        val(in_json) from extract_out
-    output:
-        stdout(out_json) into DTC_out
-    script:
-	if ( params.source == 5 )
-        """
-        python3 /new_pipeline/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json' --no_byte
-        """
-	else
-	"""
-	python3 /new_pipeline/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json'
-	"""
-}
-// python3 bin/PublishDateGraper_DTC-nextflow.py --input_file $filename --data in_json
-
 process doc_preprocess {
     input:
-        val(in_json) from DTC_out
+        val(in_json) from extract_out
     output:
         stdout(out_json) into preprocess_out
     script:
 	"""
-	python3 /new_pipeline/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source
+	python3 /emw_pipeline_nf/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source
 	"""
 }
 
@@ -87,7 +68,7 @@ process classifier {
         stdout(out_json) into classifier_out
     script:
         """
-        python3 /new_pipeline/bin/classifier.py --data '$in_json'
+        python3 /emw_pipeline_nf/bin/classifier.py --data '$in_json' --out_dir $params.outdir
         """
 }
 
@@ -97,18 +78,24 @@ process placeTagger {
     output:
         stdout(out_json) into place_out
     when:
-        """if [`echo $in_json | rev | cut -d "," -f 1` = 1 ];then echo "True";fi"""
+        in_json.substring(in_json.length()-2,in_json.length()-1) == "1"
     script:
-        """
-        python3 /new_pipeline/bin/placeTagger.py --data '$in_json'
-        """
+    in_json = in_json.substring(0,in_json.length()-3)
+    """
+    python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json'
+    """
 }
 
-process temporalTagger {
+process DTC {
     input:
         val(in_json) from place_out
     script:
+	if ( params.source == 5 )
         """
-        python3 /new_pipeline/bin/temporalTagger.py --data '$in_json'
+        python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --out_dir $params.outdir --data '$in_json' --no_byte
         """
+	else
+	"""
+	python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --out_dir $params.outdir --data '$in_json'
+	"""
 }

@@ -14,6 +14,7 @@ def get_args():
         '''
     parser = argparse.ArgumentParser(prog='placeTagger.py',description='Extract place names from a text, and add context to those names -- for example distinguishing between a country, region or city.')
     parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
     return args
 
