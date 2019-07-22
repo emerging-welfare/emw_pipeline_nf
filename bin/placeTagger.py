@@ -6,7 +6,7 @@ import json
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from utils import load_from_json
-from utils import dump_to_json
+from utils import write_to_json
 
 def get_args():
     '''
@@ -39,10 +39,11 @@ if __name__ == '__main__':
     data = load_from_json(args.data)
 
     place_tags = []
+    # TODO : Process only sentences with label 1
     for sentence in data["event_sentences"]:
         places = geograpy.get_place_context(text=sentence)
         place_dicts = cityDic(places.cities) # Only cities ???
         place_tags.append(place_dicts)
 
     data["place_tags"] = place_tags
-    print(dump_to_json(data))
+    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

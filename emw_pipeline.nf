@@ -72,30 +72,41 @@ process classifier {
         """
 }
 
-process placeTagger {
+process DCT {
     input:
         val(in_json) from classifier_out
     output:
-        stdout(out_json) into place_out
+        stdout(out_json) into DCT_out
     when:
         in_json.substring(in_json.length()-2,in_json.length()-1) == "1"
     script:
-    in_json = in_json.substring(0,in_json.length()-3)
-    """
-    python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json'
-    """
-}
-
-process DTC {
-    input:
-        val(in_json) from place_out
-    script:
+        in_json = in_json.substring(0,in_json.length()-3)
 	if ( params.source == 5 )
         """
-        python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --out_dir $params.outdir --data '$in_json' --no_byte
+        python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json' --no_byte
         """
 	else
 	"""
-	python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --out_dir $params.outdir --data '$in_json'
+	python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json'
 	"""
+}
+
+process sent_classifier {
+    input:
+        val(in_json) from DCT_out
+    output:
+        stdout(out_json) into sent_out
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/sent_classifier.py --data '$in_json'
+    """
+}
+
+process placeTagger {
+    input:
+        val(in_json) from sent_out
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json' --out_dir $params.outdir
+    """
 }
