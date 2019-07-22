@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import shelve
 from nltk import sent_tokenize
 import numpy
 from pathlib import Path
@@ -20,17 +19,6 @@ api = Api(app)
 PYTORCH_PRETRAINED_BERT_CACHE = Path(os.getenv('PYTORCH_PRETRAINED_BERT_CACHE',
                                                Path.home() / '.pytorch_pretrained_bert'))
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = shelve.open("classifier.db")
-    return db
-
-@app.teardown_appcontext
-def teardown_db(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
 
 @app.route("/")
 def index():
@@ -98,17 +86,6 @@ def predict(text):
     return int(labels[0])
 
 class queryList(Resource):
-    def get(self):
-        shelf = get_db()
-        keys = list(shelf.keys())
-
-        queries = []
-
-        for key in keys:
-            queries.append(shelf[key])
-
-        return  queries, 200
-
     def post(self):
         parser = reqparse.RequestParser()
 
@@ -119,34 +96,11 @@ class queryList(Resource):
         # Parse the arguments into an object
         args = parser.parse_args()
         output = predict(args['text'])
-        shelf = get_db()
-        shelf[args['identifier']] = args
         args["output"] = str(output)
         if args["output"] == "1":
             args["event_sentences"] = sent_tokenize(args['text'])
-        #return {'message': 'Query registered', 'data': args,'output':a_str }, 201
         return args, 201
 
-
-class Device(Resource):
-    def get(self, identifier):
-        shelf = get_db()
-
-        # If the key does not exist in the data store, return a 404 error.
-        if not (identifier in shelf):
-            return {'message': 'Device not found', 'data': {}}, 404
-
-        return {'message': 'Device found', 'data': shelf[identifier]}, 200
-
-    def delete(self, identifier):
-        shelf = get_db()
-
-        # If the key does not exist in the data store, return a 404 error.
-        if not (identifier in shelf):
-            return {'message': 'Device not found', 'data': {}}, 404
-
-        del shelf[identifier]
-        return '', 204
 
 
 # file = '/emw_pipeline_nf/bin/classifier/20180919_protest_classifier-Matthews-70onTest29onChina.pickle'
@@ -173,5 +127,4 @@ else:
 model.to(device)
 
 api.add_resource(queryList, '/queries')
-api.add_resource(Device, '/query/<string:identifier>')
 app.run(host='0.0.0.0', port=5000, debug=True)
