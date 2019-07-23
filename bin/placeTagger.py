@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     place_tags = []
     # TODO : Process only sentences with label 1
-    for sentence in data["event_sentences"]:
+    for sentence in data["sentences"]:
         places = geograpy.get_place_context(text=sentence)
         place_dicts = cityDic(places.cities) # Only cities ???
         place_tags.append(place_dicts)

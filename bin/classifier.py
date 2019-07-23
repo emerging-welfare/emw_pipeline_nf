@@ -33,6 +33,6 @@ if __name__ == "__main__":
     if data["doc_label"] == 0:
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
     else:
-        data["event_sentences"] = rtext["event_sentences"]
+        data["sentences"] = rtext["event_sentences"]
 
     print(dump_to_json(data, add_label=True))

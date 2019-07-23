@@ -102,9 +102,20 @@ process sent_classifier {
     """
 }
 
-process placeTagger {
+process trigger_classifier {
     input:
         val(in_json) from sent_out
+    output:
+        stdout(out_json) into trigger_out
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/trigger_classifier.py --data '$in_json'
+    """
+}
+
+process placeTagger {
+    input:
+        val(in_json) from trigger_out
     script:
     """
     python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json' --out_dir $params.outdir

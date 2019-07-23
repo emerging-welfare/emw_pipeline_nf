@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
+from sklearn.externals import joblib
 
 # Import the framework
 from flask import Flask, g
@@ -74,6 +75,24 @@ def convert_text_to_features(text, label_list, max_seq_length, tokenizer):
     return input_ids, input_mask, segment_ids
 
 def predict(text):
+
+    # svm_predicted = svm_model.predict_proba(text)
+    # svm_predicted = [0 if i[0] >= 0.95 else 1 for i in svm_predicted]
+
+    # if svm_predicted[0] == 1:
+    #     input_ids, input_mask, segment_ids = convert_text_to_features(text, label_list, max_seq_length, tokenizer)
+    #     input_ids = torch.tensor(input_ids, dtype=torch.long).unsqueeze(0).to(device)
+    #     input_mask = torch.tensor(input_mask, dtype=torch.long).unsqueeze(0).to(device)
+    #     segment_ids = torch.tensor(segment_ids, dtype=torch.long).unsqueeze(0).to(device)
+
+    #     logits = model(input_ids, segment_ids, input_mask)
+    #     logits = logits.detach().cpu().numpy()
+    #     label = numpy.argmax(logits, axis=1)
+    #     label = label[0]
+
+    # else:
+    #     label = 0
+
     input_ids, input_mask, segment_ids = convert_text_to_features(text, label_list, max_seq_length, tokenizer)
     input_ids = torch.tensor(input_ids, dtype=torch.long).unsqueeze(0).to(device)
     input_mask = torch.tensor(input_mask, dtype=torch.long).unsqueeze(0).to(device)
@@ -81,9 +100,10 @@ def predict(text):
 
     logits = model(input_ids, segment_ids, input_mask)
     logits = logits.detach().cpu().numpy()
-    labels = numpy.argmax(logits, axis=1)
+    label = numpy.argmax(logits, axis=1)
+    label = label[0]
 
-    return int(labels[0])
+    return int(label)
 
 class queryList(Resource):
     def post(self):
@@ -102,11 +122,7 @@ class queryList(Resource):
         return args, 201
 
 
-
-# file = '/emw_pipeline_nf/bin/classifier/20180919_protest_classifier-Matthews-70onTest29onChina.pickle'
-# global classifer
-# with open(file,"rb") as f :
-#     classifer= pickle.load(f)
+svm_model = joblib.load('/.pytorch_pretrained_bert/svm_model.pkl')
 
 label_list = ["0", "1"]
 max_seq_length = 256

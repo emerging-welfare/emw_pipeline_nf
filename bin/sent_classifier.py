@@ -16,8 +16,8 @@ def get_args():
 
     return(args)
 
-def request(id,event_sentences):
-    r = requests.post(url = "http://localhost:4999/queries", json={'identifier':id,'sentences':event_sentences})
+def request(id,sentences):
+    r = requests.post(url = "http://localhost:4999/queries", json={'identifier':id,'sentences':sentences})
     return json.loads(r.text)
 
 if __name__ == "__main__":
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     data = load_from_json(args.data)
 
     # What to do when there is no positive sentence? This is more urgent in token level predictions where we filter out predicted tokens if they are not in a positive sentence.
-    rtext = request(data["id"], data["event_sentences"])
+    rtext = request(data["id"], data["sentences"])
     data["sent_labels"] = [int(i) for i in rtext["output"]]
 
     print(dump_to_json(data))
