@@ -24,7 +24,7 @@ RUN mv nextflow ./bin
 RUN nextflow
 
 # Extract & Doc Preprocess Dependencies
-RUN cd /emw_pipeline_nf && git checkout comprehensive && pip2 install --no-cache-dir -r requirements2.txt && pip3 install --no-cache-dir -r requirements.txt
+RUN cd /emw_pipeline_nf && pip2 install --no-cache-dir -r requirements2.txt && pip3 install --no-cache-dir -r requirements.txt
 RUN git clone https://github.com/OsmanMutlu/python-boilerpipe.git && cd python-boilerpipe && python2 setup.py install && cd .. && rm -rf python-boilerpipe
 
 # BERT
