@@ -1,0 +1,9 @@
+*.db.*
+__pycache__/
+.nextflow*
+*.pyc
+work/
+*~
+*.out
+*.db
+jsons/

@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="dct-finder-2015-01-22">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/dct-finder-2015-01-22.jar!/" />
+      <root url="jar://$PROJECT_DIR$/commons-lang3-3.8.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/commons-cli-1.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/dct-finder-2015-01-22.jar!/" />
+    </SOURCES>
+  </library>
+</component>

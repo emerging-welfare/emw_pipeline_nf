@@ -1,0 +1,4 @@
+# These are reqs for python2
+goose-extractor==1.0.25
+JPype1==0.6.3
+chardet==3.0.4

@@ -1,9 +1,0 @@
-version: '3.4'
-
-services:
-  temporal-tagger:
-    build: .
-    #volumes:
-     # - .:/usr/src/app/temporalTagger
-    ports:
-      - 12345:80

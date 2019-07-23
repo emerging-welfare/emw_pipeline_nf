@@ -1,106 +1,112 @@
 #!/usr/bin/env nextflow
-import groovy.json.JsonSlurper
-params.input = "$baseDir/data/*.html"
-params.outdir = "$baseDir/results"
+//import groovy.json.JsonSlurper
 
-inChannelA = Channel.fromPath(params.input)
-inChannelB=Channel.fromPath(params.input)
+params.input_dir = "$baseDir/data"
+params.input = "$params.input_dir/*html"
+params.outdir = "$params.input_dir/../jsons/"
+params.source_lang = "English"
+params.source = 4
 
+html_channel = Channel.fromPath(params.input)
+println(params.input)
+// Source 1 times
+// Source 2 newind
+// Source 3 ind
+// Source 4 thehin
+// Source 5 scm
+// Source 6 people
 
-process clean {
+process extract {
     input:
-    file(fa) from inChannelA
+        file(filename) from html_channel
     output:
-        file("*.clean.json") into channelA
-
+        stdout(out_json) into extract_out
     script:
+	if ( params.source == 1 )
         """
-      clean.py $fa
+	    python3 /emw_pipeline_nf/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
+	"""
+	else if ( params.source == 2 )
         """
+	    python2 /emw_pipeline_nf/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	"""
+	else if ( params.source == 3 )
+        """
+	    python2 /emw_pipeline_nf/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	"""
+	else if ( params.source == 4 )
+        """
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+	"""
+	else if ( params.source == 5 )
+        """
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
+	"""
+	else if ( params.source == 6 )
+        """
+	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+	"""
+	else
+	    error "No source as : ${params.source}"
 }
-process DTC {
+
+process doc_preprocess {
     input:
-        file(fa) from inChannelB
+        val(in_json) from extract_out
     output:
-        file("*.DTC.json") into DTC_out
-        //stdout DTC_result
+        stdout(out_json) into preprocess_out
     script:
-    """
-     PublishDateGraper_DTC-nextflow.py $fa
-    """
+	"""
+	python3 /emw_pipeline_nf/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source
+	"""
 }
-//DTC_result.subscribe { println it }
-
 
 process classifier {
     input:
-        file(fa) from channelA
-
+        val(in_json) from preprocess_out
     output:
-        file("*.*classifier.json") into (channelB,channelC)
-        //dene1=Channel.from(channelB)
-       // stdout ChannelL
-
+        stdout(out_json) into classifier_out
     script:
-
         """
-        classifier.py $fa
+        python3 /emw_pipeline_nf/bin/classifier.py --data '$in_json' --out_dir $params.outdir
         """
 }
 
-//ChannelL.subscribe { println it }
+process DCT {
+    input:
+        val(in_json) from classifier_out
+    output:
+        stdout(out_json) into DCT_out
+    when:
+        in_json.substring(in_json.length()-2,in_json.length()-1) == "1"
+    script:
+        in_json = in_json.substring(0,in_json.length()-3)
+	if ( params.source == 5 )
+        """
+        python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json' --no_byte
+        """
+	else
+	"""
+	python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json'
+	"""
+}
 
+process sent_classifier {
+    input:
+        val(in_json) from DCT_out
+    output:
+        stdout(out_json) into sent_out
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/sent_classifier.py --data '$in_json'
+    """
+}
 
 process placeTagger {
-input:
-file(fa) from channelB
-// output:
-// file("*.placeTagger.json") into PT_out
-//stdout PC_result
-script:
-//println( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ )
-if ( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ ){
+    input:
+        val(in_json) from sent_out
+    script:
     """
-        placeTagger.py $fa
-     """
-    }
-else{
-    """
-        echo '{"identifier":"$fa","status":"non protest" }' > placeTagger.json
+    python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json' --out_dir $params.outdir
     """
 }
-        
-// """
-// placeTagger.py $fa
-// """
-}
-
-process temporalTagger {
-input:
-file(fa) from channelC
-
-// output:
-// file("*.temporalTagger.json") into TT_out
-
-script:
-if ( fa==~/^[a-zA-Z0-9]*\.classifier\.json$/ ){
-   """
-    temporalTagger.py $fa
-    """
-    }
-else{
-    """
-    echo '{"identifier":"$fa","status":"non protest" }' > temporalTagger.json
-
-    """
-}
-
-}
-// Channel
-//     .from( '5.classifier.json', '6.classifier.json','emo.classifier.json',"3.0classifier.json","demo1.0classifier.json","demo2.0classifier.json")
-//     .filter( ~/^[a-zA-Z0-9]*\.classifier\.json$/ )
-//     .subscribe { println it }
-
-
-
-
