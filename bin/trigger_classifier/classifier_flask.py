@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import numpy
 from pathlib import Path
@@ -148,11 +147,12 @@ class queryList(Resource):
 
 
 max_seq_length = 512
-model_path = "/.pytorch_pretrained_bert/trigger_model.pt"
-bert_model = "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+
+model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/trigger_model.pt"
+bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
+bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 label_list = ["B-trigger", "I-trigger", "O"]
 label_map = {}
@@ -161,10 +161,10 @@ for (i, label) in enumerate(label_list):
 
 model = BertForTokenClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=len(label_list))
 
-if device == "cpu":
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
-else:
+if torch.cuda.is_available():
     model.load_state_dict(torch.load(model_path))
+else:
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
 model.to(device)
 
