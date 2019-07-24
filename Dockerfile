@@ -37,6 +37,12 @@ RUN python3 -c "import nltk;nltk.download('popular', halt_on_error=False)"
 # DCT depenedecy
 RUN git clone https://github.com/Jekub/Wapiti && cd Wapiti && make install
 
+#Neuroner dependencies 
+RUN python3 -m spacy download en
+RUN wget -P data/word_vectors http://neuroner.com/data/word_vectors/glove.6B.100d.zip
+RUN unzip data/word_vectors/glove.6B.100d.zip -d data/word_vectors/
+RUN apt-get install --yes --no-install-recommends perl
+
 # Create default output folder
 RUN mkdir /emw_pipeline_nf/jsons
 RUN echo "cd /emw_pipeline_nf && git pull origin master" >> ~/.bashrc
