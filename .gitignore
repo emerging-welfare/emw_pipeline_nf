@@ -7,3 +7,4 @@ work/
 *.out
 *.db
 jsons/
+bin/neuroner/model/dataset.pickle

@@ -18,20 +18,23 @@ def index():
     else :
         return "<html><body><p>neuroner is not loaded</p></body></html>"
 
+# Not finished yet
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('text', required=True)
+        parser.add_argument('tokens', required=False, type=str, action='append', default=[])
+        text = "\n".join(tokens)
+        lengths = [len(token.encode("utf-8")) + 1 for token in tokens]
+        offsets = [sum(lengths[:i]) for i,a in enumerate(lengths)]
         args = parser.parse_args()
-        return nn.predict(args["text"]), 201
+        return nn.predict(text), 201
 
-global nn
 nn=neuromodel.NeuroNER(train_model=False,
                         use_pretrained_model=True,
                         pretrained_model_folder="/model",
                         dataset_text_folder="/test_folder",
                         tagging_format="bio",output_scores=False
-                        ) 
+                        )
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4997, debug=True)
