@@ -12,3 +12,5 @@ nextflow
 data/word_vectors/
 bin/neuroner/test_folder/test_compatible_with_brat.txt
 bin/neuroner/test_folder/test/
+data/
+output/

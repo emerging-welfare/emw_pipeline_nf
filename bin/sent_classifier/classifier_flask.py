@@ -128,7 +128,7 @@ bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-v
 model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/sent_model.pt"
 
 num_labels = len(label_list)
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 model = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels)

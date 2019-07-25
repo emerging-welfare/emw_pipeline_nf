@@ -152,7 +152,7 @@ model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/trigger_model.pt"
 bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 label_list = ["B-trigger", "I-trigger", "O"]
 label_map = {}

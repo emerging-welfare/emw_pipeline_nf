@@ -130,7 +130,7 @@ model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/doc_model.pt"
 svm_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/svm_model.pkl"
 
 num_labels = len(label_list)
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 svm_model = joblib.load(svm_model)
 

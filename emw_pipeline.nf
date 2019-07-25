@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.input_dir = "$baseDir/data"
-params.input = "$params.input_dir/*html"
+params.input = "$params.input_dir/http*"
 params.outdir = "$params.input_dir/../jsons/"
 params.source_lang = "English"
 params.source = 4
