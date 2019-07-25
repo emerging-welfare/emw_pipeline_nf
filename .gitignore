@@ -9,3 +9,4 @@ work/
 jsons/
 bin/neuroner/model/dataset.pickle
 nextflow
+data/word_vectors/
