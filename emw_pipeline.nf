@@ -102,6 +102,6 @@ process neuroner {
         val(in_json) from trigger_out
     script:
     """
-    python3 $params.prefix/bin/placeTagger.py --data '$in_json' --out_dir $params.outdir
+    python3 $params.prefix/bin/neuroner.py --data '$in_json' --out_dir $params.outdir
     """
 }
