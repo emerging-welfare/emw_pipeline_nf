@@ -16,14 +16,66 @@ def get_args():
 
     return(args)
 
-def request(id,text):
-    r = requests.post(url = "http://localhost:4997/queries", data = {'text':text},json={"Content-Type":"application/json"})
+def postprocess(data):
+    all_tokens = []
+    sent_count = 0
+    all_trigger_labels = []
+    all_token_labels = []
+    for i, token in enumerate(data["tokens"]):
+        if token == "SAMPLE_START":
+            trigger_labels = []
+            token_labels = []
+            tokens = []
+        elif token == "[SEP]":
+            all_tokens.append(tokens)
+            if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
+                trigger_labels = ["O"] * len(trigger_labels)
+                token_labels = ["O"] * len(token_labels)
+
+            all_trigger_labels.append(trigger_labels)
+            all_token_labels.append(token_labels)
+            sent_count += 1
+            trigger_labels = []
+            token_labels = []
+            tokens = []
+        elif token == "":
+            all_tokens.append(tokens)
+            if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
+                trigger_labels = ["O"] * len(trigger_labels)
+                token_labels = ["O"] * len(token_labels)
+
+            all_trigger_labels.append(trigger_labels)
+            all_token_labels.append(token_labels)
+            trigger_labels = []
+            token_labels = []
+            tokens = []
+        else:
+            tokens.append(token)
+            if data["trigger_labels"][i] != "O":
+                trigger_labels.append(data["trigger_labels"][i])
+            elif data["token_labels"][i] != "O":
+                token_labels.append(data["token_labels"][i])
+
+    data["trigger_labels"] = all_trigger_labels
+    data["token_labels"] = all_token_labels
+    data["tokens"] = all_tokens
+    return data
+
+def request(text):
+    r = requests.post(url = "http://localhost:4996/queries", json = {'tokens':text})
     return json.loads(r.text)
 
-# Not finished yet
 if __name__ == "__main__":
     args = get_args()
     data = load_from_json(args.data)
-    rtext = request(text=data["text"])
-    data["places"]=[x for x in rtext if x["type"]=="place"]
+
+    # text = "\n".join(data["tokens"])
+    # rtext = request(text)
+
+    rtext = request(data["tokens"])
+    data["token_labels"] = rtext["output"]
+
+    # Discuss if postprocess is necessary in here, or should it be applied afterwards
+    # data = postprocess(data)
+
     write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

@@ -113,11 +113,11 @@ process trigger_classifier {
     """
 }
 
-process placeTagger {
+process neuroner {
     input:
         val(in_json) from trigger_out
     script:
     """
-    python3 /emw_pipeline_nf/bin/placeTagger.py --data '$in_json' --out_dir $params.outdir
+    python3 /emw_pipeline_nf/bin/neuroner.py --data '$in_json' --out_dir $params.outdir
     """
 }

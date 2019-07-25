@@ -16,8 +16,8 @@ def write_to_json(data, filename, extension=None, out_dir=""):
 def load_from_json(data):
     data = re.sub(r"\[QUOTE\]", r"'", data)
     #data = re.sub(r'\!', r'!', data)
-    return json.loads(data)
-    
+    return json.loads(data, encoding="utf-8")
+
 def dump_to_json(data, add_label=False):
     if add_label:
         doc_label = str(data["doc_label"])
