@@ -97,7 +97,7 @@ process trigger_classifier {
     """
 }
 
-process placeTagger {
+process neuroner {
     input:
         val(in_json) from trigger_out
     script:
