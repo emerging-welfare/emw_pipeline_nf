@@ -18,7 +18,7 @@ def get_args():
 
 def postprocess(data):
     all_tokens = []
-    sent_count = 0
+    # sent_count = 0
     all_trigger_labels = []
     all_token_labels = []
     for i, token in enumerate(data["tokens"]):
@@ -28,9 +28,9 @@ def postprocess(data):
             tokens = []
         elif token == "[SEP]":
             all_tokens.append(tokens)
-            if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
-                trigger_labels = ["O"] * len(trigger_labels)
-                token_labels = ["O"] * len(token_labels)
+            # if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
+            #     trigger_labels = ["O"] * len(trigger_labels)
+            #     token_labels = ["O"] * len(token_labels)
 
             all_trigger_labels.append(trigger_labels)
             all_token_labels.append(token_labels)
@@ -40,9 +40,9 @@ def postprocess(data):
             tokens = []
         elif token == "":
             all_tokens.append(tokens)
-            if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
-                trigger_labels = ["O"] * len(trigger_labels)
-                token_labels = ["O"] * len(token_labels)
+            # if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
+            #     trigger_labels = ["O"] * len(trigger_labels)
+            #     token_labels = ["O"] * len(token_labels)
 
             all_trigger_labels.append(trigger_labels)
             all_token_labels.append(token_labels)
@@ -74,8 +74,5 @@ if __name__ == "__main__":
 
     rtext = request(data["tokens"])
     data["token_labels"] = rtext["output"]
-
-    # Discuss if postprocess is necessary in here, or should it be applied afterwards
-    # data = postprocess(data)
-
+    data = postprocess(data)
     write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
