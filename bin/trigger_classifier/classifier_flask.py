@@ -50,7 +50,11 @@ def prepare_input(lines):
                     continue
 
                 tokenized = tokenizer.tokenize(word)
-                tokens.append(tokenized[0])
+                if tokenized:
+                    tokens.append(tokenized[0])
+                else:
+                    tokens.append("[UNK]")
+
 
             if len(tokens) > max_seq_length - 1:
                 tokens = tokens[0:(max_seq_length - 1)]
