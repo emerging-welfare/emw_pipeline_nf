@@ -3,7 +3,7 @@
 
 params.input_dir = "$baseDir/data"
 params.input = "$params.input_dir/*html"
-params.outdir = "$params.input_dir/../jsons/"
+params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
 params.source = 4
 
@@ -17,6 +17,7 @@ println(params.input)
 // Source 6 people
 
 process extract {
+    errorStrategy 'ignore'
     input:
         file(filename) from html_channel
     output:
@@ -51,7 +52,7 @@ process extract {
 }
 
 process doc_preprocess {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.extract").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.extract").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from extract_out
     output:
@@ -63,7 +64,7 @@ process doc_preprocess {
 }
 
 process classifier {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.preprocess").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.preprocess").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from preprocess_out
     output:
@@ -75,7 +76,7 @@ process classifier {
 }
 
 process DCT {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.doc").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.doc").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from classifier_out
     output:
@@ -95,7 +96,7 @@ process DCT {
 }
 
 process sent_classifier {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.DCT").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.DCT").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from DCT_out
     output:
@@ -107,7 +108,7 @@ process sent_classifier {
 }
 
 process trigger_classifier {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.sent").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.sent").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from sent_out
     output:
@@ -119,7 +120,7 @@ process trigger_classifier {
 }
 
 process neuroner {
-    errorStrategy { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.trigger").write(in_json, "UTF-8"); return 'ignore' }
+    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.trigger").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from trigger_out
     script:
