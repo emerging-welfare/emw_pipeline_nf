@@ -8,7 +8,7 @@ def get_args():
     '''
     This function parses and return arguments passed in
     '''
-    parser = argparse.ArgumentParser(prog='neuroner.py',
+    parser = argparse.ArgumentParser(prog='neuroner_classifier.py',
                                      description='Extract information text using FLASK neuroner Application ')
     parser.add_argument('--data', help="Serialized json string")
     parser.add_argument('--out_dir', help="output folder")
