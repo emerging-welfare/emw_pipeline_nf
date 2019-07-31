@@ -6,6 +6,7 @@ params.input = "$params.input_dir/*html"
 params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
 params.source = 4
+params.batchsize = 8
 
 html_channel = Channel.fromPath(params.input)
 println(params.input)
@@ -66,25 +67,22 @@ process doc_preprocess {
 process classifier {
     errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.preprocess").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
-        val(in_json) from preprocess_out
+        val(in_json) from preprocess_out.collate($params.batchsize)
     output:
         stdout(out_json) into classifier_out
     script:
         """
-        python3 /emw_pipeline_nf/bin/classifier.py --data '$in_json' --out_dir $params.outdir
+        python3 /emw_pipeline_nf/bin/classifier_batch.py --data '$in_json' --out_dir $params.outdir
         """
 }
 
 process DCT {
     errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\..+", ".") + "json.doc").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
-        val(in_json) from classifier_out
+        val(in_json) from classifier_out.filter({ it != "N" }).flatMap { n -> n.findAll(/\{.+?\}/) }
     output:
         stdout(out_json) into DCT_out
-    when:
-        in_json.substring(in_json.length()-2,in_json.length()-1) == "1"
     script:
-        in_json = in_json.substring(0,in_json.length()-3)
 	if ( params.source == 5 )
         """
         python3 /emw_pipeline_nf/bin/PublishDateGraper_DTC-nextflow.py --input_dir $params.input_dir --data '$in_json' --no_byte
