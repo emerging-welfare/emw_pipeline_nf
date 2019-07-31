@@ -4,12 +4,12 @@ import json
 def remove_path(filename):
     return re.search(r"[^\/]+$", filename).group(0)
 
-def change_extension(filename, ex):
-    return re.sub("(\.html?|\.cms|\.ece\d?)$", "." + ex, filename)
+def change_extension(filename, ex=""):
+    return re.sub("(\.html?|\.cms|\.ece\d?)$", ex, filename)
 
 def write_to_json(data, filename, extension=None, out_dir=""):
     if extension is not None:
-        filename = re.sub("(\.html?|\.cms|\.ece\d?)$", "." + extension, filename)
+        filename = change_extension(filename, ex="."+extension)
 
     json.dump(data, open(out_dir + filename, "w", encoding="utf-8"), ensure_ascii=False, sort_keys=True)
 
@@ -29,5 +29,117 @@ def dump_to_json(data, add_label=False):
 
     return data
 
+def postprocess(data):
+    all_tokens = []
+    # sent_count = 0
+    all_trigger_labels = []
+    all_token_labels = []
+    for i, token in enumerate(data["tokens"]):
+        if token == "SAMPLE_START":
+            trigger_labels = []
+            token_labels = []
+            tokens = []
+        elif token == "[SEP]" or token == "":
+            all_tokens.append(tokens)
+            # if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
+            #     trigger_labels = ["O"] * len(trigger_labels)
+            #     token_labels = ["O"] * len(token_labels)
+
+            all_trigger_labels.append(trigger_labels)
+            all_token_labels.append(token_labels)
+            # sent_count += 1
+            trigger_labels = []
+            token_labels = []
+            tokens = []
+        else:
+            tokens.append(token)
+            trigger_labels.append(data["trigger_labels"][i])
+            token_labels.append(data["token_labels"][i])
+
+    data["trigger_labels"] = all_trigger_labels
+    data["token_labels"] = all_token_labels
+    data["tokens"] = all_tokens
+    return data
+
+def json_to_folia(data):
+
+    from pynlpl.formats import folia
+
+    foliaset = "https://github.com/OsmanMutlu/rawtext/raw/master/protes1-Task.foliaset.xml"
+
+    tokens = data["tokens"]
+    token_labels = data["token_labels"]
+    trigger_labels = data["trigger_labels"]
+
+    doc_id = change_extension(re.sub(r"%", r"-h6j7k8-", data["id"]))
+    doc = folia.Document(id=doc_id, filename=doc_id+".folia.xml")
+
+    doc.declare(folia.Entity, foliaset)
+    metadata = doc.metadata
+    metadata["filename"] = data["id"]
+    if "title" in data.keys():
+        metadata["title"] = data["title"]
+    if "time" in data.keys():
+        metadata["time"] = data["time"]
+    if "place" in data.keys():
+        metadata["place"] = data["place"]
+
+    doc.metadata = metadata
+
+    text = doc.add(folia.Text)
+    paragraph = text.add(folia.Paragraph)
+
+    for sent_num,sent in enumerate(tokens):
+        sentence = paragraph.add(folia.Sentence)
+        sentence.cls = str(data["sent_labels"][sent_num])
+
+        for token in sent:
+            sentence.add(folia.Word, token)
+
+        token_spans = []
+        trigger_spans = []
+        token_span = []
+        trigger_span = []
+        to_labels = []
+        for j,token_label in enumerate(token_labels[sent_num]):
+
+            trigger_label = trigger_labels[sent_num][j]
+            if token_label == "O" and token_span:
+                token_spans.append(token_span)
+                to_labels.append(prev_token_label)
+                token_span = []
+            elif token_label != "O":
+                if not token_span:
+                    token_span.append(j)
+                else:
+                    if prev_token_label == token_label:
+                        token_span.append(j)
+                    else:
+                        token_spans.append(token_span)
+                        to_labels.append(prev_token_label)
+                        token_span = [j]
+                prev_token_label = token_label
+
+            if trigger_label == "O" and trigger_span:
+                trigger_spans.append(trigger_span)
+                trigger_span = []
+            elif trigger_label.startswith("B-"):
+                if trigger_span:
+                    trigger_spans.append(trigger_span)
+                    trigger_span = []
+                else:
+                    trigger_span.append(j)
+            elif trigger_label.startswith("I-"):
+                trigger_span.append(j)
+
+        for span in trigger_spans:
+            span = [doc[doc_id + ".text.1.p.1.s." + str(sent_num+1) + ".w." + str(x+1)] for x in span]
+            span[0].add(folia.Entity, *span, cls="trigger", set=foliaset, annotator="BERT", annotatortype="auto")
+
+        for j,span in enumerate(token_spans):
+            span = [doc[doc_id + ".text.1.p.1.s." + str(sent_num+1) + ".w." + str(x+1)] for x in span]
+            span[0].add(folia.Entity, *span, cls=to_labels[j], set=foliaset, annotator="Neuroner", annotatortype="auto")
+
+    doc.save()
 
     # ["id", "text","title","length","creation_time","last_update_time","temporal_tags"->span_list,"place_names"->object_list,"participants"->span_list,"organizers"->span_list,"targets"->span_list,"triggers"->span_list,"targets"->span_list]
