@@ -1,5 +1,4 @@
 # Main
-pandas==0.22.0
 requests==2.21.0
 Flask==0.12.2
 Flask-RESTful==0.3.6
@@ -23,5 +22,5 @@ geograpy3==0.1.2
 geopy==1.20.0
 newspaper3k==0.2.8
 
-#neuroner 
+#neuroner
 pyneuroner[cpu]==1.0.7

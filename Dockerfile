@@ -46,10 +46,4 @@ RUN unzip /emw_pipeline_nf/data/word_vectors/glove.6B.100d.zip -d /emw_pipeline_
 
 # Create default output folder
 RUN mkdir /emw_pipeline_nf/jsons
-RUN echo "cd /emw_pipeline_nf && git pull origin master" >> ~/.bashrc
-RUN echo "nohup python3 /emw_pipeline_nf/bin/classifier/classifier_flask.py 2> /dev/null &" >> ~/.bashrc
-RUN echo "nohup python3 /emw_pipeline_nf/bin/sent_classifier/classifier_flask.py 2> /dev/null &" >> ~/.bashrc
-RUN echo "nohup python3 /emw_pipeline_nf/bin/trigger_classifier/classifier_flask.py 2> /dev/null &" >> ~/.bashrc
-RUN echo "nohup python3 /emw_pipeline_nf/bin/neuroner/neuroner_flask.py 2> /dev/null &" >> ~/.bashrc
 RUN echo "cd /emw_pipeline_nf" >> ~/.bashrc
-RUN echo "export PYTHONPATH=/emw_pipeline_nf/bin:$PYTHONPATH" >> ~/.bashrc
