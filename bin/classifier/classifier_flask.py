@@ -29,11 +29,11 @@ def index():
     #content = str("\n ".join(main(file)))
 
     # Convert to HTML
-    if classifer is not None :
+    #if classifer is not None :
         # return markdown.markdown("classifier is loaded")
-        return "<html><body><p>classifier is loaded</p></body></html>"
-    else :
-        return "<html><body><p>classifier is not loaded</p></body></html>"
+     #   return "<html><body><p>classifier is loaded</p></body></html>"
+    #else :
+    return "<html><body><p>classifier loaded</p></body></html>"
         # return markdown.markdown("classifier is not loaded")
 
 # def predict (input):
@@ -141,6 +141,5 @@ else:
     model.load_state_dict(torch.load(model_path))
 
 model.to(device)
-
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=5000, debug=True)
