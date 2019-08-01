@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 from nltk import sent_tokenize
 import numpy
@@ -76,7 +75,7 @@ def convert_text_to_features(text, label_list, max_seq_length, tokenizer):
 
 def predict(text):
 
-    # svm_predicted = svm_model.predict_proba(text)
+    # svm_predicted = svm_model.predict_proba([text])
     # svm_predicted = [0 if i[0] >= 0.95 else 1 for i in svm_predicted]
 
     # if svm_predicted[0] == 1:
@@ -122,23 +121,25 @@ class queryList(Resource):
         return args, 201
 
 
-svm_model = joblib.load('/.pytorch_pretrained_bert/svm_model.pkl')
-
 label_list = ["0", "1"]
 max_seq_length = 256
-bert_model = "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-model_path = "/.pytorch_pretrained_bert/doc_model.pt"
+
+bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
+bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/doc_model.pt"
+# svm_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/svm_model.pkl"
+
 num_labels = len(label_list)
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+
+# svm_model = joblib.load(svm_model)
 
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 model = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels)
-if device == "cpu":
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
-else:
+if torch.cuda.is_available():
     model.load_state_dict(torch.load(model_path))
+else:
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
 model.to(device)
 

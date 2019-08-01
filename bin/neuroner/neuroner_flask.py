@@ -50,8 +50,8 @@ class queryList(Resource):
 
 nn=neuromodel.NeuroNER(train_model=False,
                         use_pretrained_model=True,
-                        pretrained_model_folder="/emw_pipeline_nf/bin/neuroner/model",
-                        dataset_text_folder="/emw_pipeline_nf/bin/neuroner/test_folder",
+                        pretrained_model_folder="/scratch/users/omutlu/emw_pipeline_nf/bin/neuroner/model",
+                        dataset_text_folder="/scratch/users/omutlu/emw_pipeline_nf/bin/neuroner/test_folder",
                         tagging_format="bio",output_scores=False)
 
 api.add_resource(queryList, '/queries')

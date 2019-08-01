@@ -1,3 +1,5 @@
+# Works with python 3.6
+
 # Main
 requests==2.21.0
 Flask==0.12.2
@@ -14,13 +16,5 @@ torch==1.1.0
 scikit-learn==0.19.1
 scipy==1.3.0
 
-# DCT
-wapiti3==3.0.1
-
-# Place Tagger
-geograpy3==0.1.2
-geopy==1.20.0
-newspaper3k==0.2.8
-
-#neuroner
-pyneuroner[cpu]==1.0.7
+# neuroner
+pyneuroner[gpu]==1.0.7
