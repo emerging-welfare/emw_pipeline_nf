@@ -3,6 +3,7 @@ import os
 import time 
 import requests
 
+os.environ['PYTHONPATH']="/emw_pipeline_nf/bin"
 l="http://localhost:"
 ports=["5000/","4999/","4998/","4996/"] #used ports 
 links=[l+ p for p in ports] #l+ports 

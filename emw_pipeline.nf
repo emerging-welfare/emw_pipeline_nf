@@ -17,7 +17,7 @@ println(params.input)
 // Source 6 people
 
 process extract {
-    errorStrategy 'ignore'
+//    errorStrategy 'ignore'
     input:
         file(filename) from html_channel
     output:
