@@ -27,11 +27,11 @@ def index():
     #content = str("\n ".join(main(file)))
 
     # Convert to HTML
-    if classifer is not None :
-        # return markdown.markdown("classifier is loaded")
-        return "<html><body><p>classifier is loaded</p></body></html>"
-    else :
-        return "<html><body><p>classifier is not loaded</p></body></html>"
+    #if classifer is not None :
+     return markdown.markdown("classifier is loaded")
+    #    return "<html><body><p>classifier is loaded</p></body></html>"
+    #else :
+    #    return "<html><body><p>classifier is not loaded</p></body></html>"
         # return markdown.markdown("classifier is not loaded")
 
 def prepare_input(lines):
