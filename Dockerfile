@@ -13,7 +13,8 @@ RUN apt-get install --yes --no-install-recommends \
     cmake \
     build-essential \
     perl \
-    apt-utils
+    apt-utils \ 
+    tmux
 
 RUN git clone https://github.com/emerging-welfare/emw_pipeline_nf.git
 RUN pip3 install --upgrade pip
