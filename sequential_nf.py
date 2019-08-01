@@ -39,4 +39,7 @@ for x,l in enumerate(links):
         nextflowOP.append(_)
     print("tmux kill-session -t "+str(x))
     os.popen("tmux kill-session -t "+str(x) )
-[print(n) for n in nextflowOP]
+#print(nextflowOP)
+with open("nextflow_output.txt","w") as r :
+    r.write("".join(nextflowOP))
+
