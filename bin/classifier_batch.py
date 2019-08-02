@@ -25,7 +25,7 @@ def request(texts):
 if __name__ == "__main__":
     args = get_args()
 
-    json_data = re.findall(r'\{"id"[^\}]+?"\}', args.data)
+    json_data = re.findall(r'\{"[^\}]+?"\]?\}', args.data)
     jsons = []
     for data in json_data:
         data = load_from_json(data)

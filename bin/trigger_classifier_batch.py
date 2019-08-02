@@ -2,7 +2,7 @@ import argparse
 import json
 import requests
 import re
-from utils import dump_to_json
+from utils import write_to_json
 from utils import load_from_json
 
 def get_args():
@@ -24,7 +24,7 @@ def request(sentences):
 if __name__ == "__main__":
     args = get_args()
 
-    json_data = re.findall(r'\{"[^\}]+?\]\}', args.data)
+    json_data = re.findall(r'\{"[^\}]+?"\]?\}', args.data)
     jsons = []
     for data in json_data:
         data = load_from_json(data)
@@ -39,6 +39,4 @@ if __name__ == "__main__":
     for i,data in enumerate(jsons):
         data["tokens"] = all_tokens[i]
         data["trigger_labels"] = all_trigger_labels[i]
-        output_data.append(dump_to_json(data))
-
-    print(str(output_data))
+        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
