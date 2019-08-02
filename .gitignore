@@ -11,3 +11,6 @@ bin/neuroner/model/dataset.pickle
 data/word_vectors/
 bin/neuroner/test_folder/test_compatible_with_brat.txt
 bin/neuroner/test_folder/test/
+output/
+data/temp
+*.swp

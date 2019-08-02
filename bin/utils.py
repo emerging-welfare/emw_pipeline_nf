@@ -32,11 +32,11 @@ def dump_to_json(data, add_label=False):
 def postprocess(data):
     all_tokens = []
     # sent_count = 0
-    all_trigger_labels = []
+    # all_trigger_labels = []
     all_token_labels = []
     for i, token in enumerate(data["tokens"]):
         if token == "SAMPLE_START":
-            trigger_labels = []
+            # trigger_labels = []
             token_labels = []
             tokens = []
         elif token == "[SEP]" or token == "":
@@ -45,19 +45,20 @@ def postprocess(data):
             #     trigger_labels = ["O"] * len(trigger_labels)
             #     token_labels = ["O"] * len(token_labels)
 
-            all_trigger_labels.append(trigger_labels)
+            # all_trigger_labels.append(trigger_labels)
             all_token_labels.append(token_labels)
             # sent_count += 1
-            trigger_labels = []
+            # trigger_labels = []
             token_labels = []
             tokens = []
         else:
             tokens.append(token)
-            trigger_labels.append(data["trigger_labels"][i])
+            # trigger_labels.append(data["trigger_labels"][i])
             token_labels.append(data["token_labels"][i])
 
-    data["trigger_labels"] = all_trigger_labels
-    data["token_labels"] = all_token_labels
+    # data["trigger_labels"] = all_trigger_labels
+    # data["token_labels"] = all_token_labels
+    data["trigger_labels"] = all_token_labels
     data["tokens"] = all_tokens
     return data
 
@@ -68,8 +69,9 @@ def json_to_folia(data):
     foliaset = "https://github.com/OsmanMutlu/rawtext/raw/master/protes1-Task.foliaset.xml"
 
     tokens = data["tokens"]
-    token_labels = data["token_labels"]
-    trigger_labels = data["trigger_labels"]
+    # token_labels = data["token_labels"]
+    # trigger_labels = data["trigger_labels"]
+    token_labels = data["trigger_labels"]
 
     doc_id = change_extension(re.sub(r"%", r"-h6j7k8-", data["id"]))
     doc = folia.Document(id=doc_id, filename=doc_id+".folia.xml")
@@ -97,48 +99,58 @@ def json_to_folia(data):
             sentence.add(folia.Word, token)
 
         token_spans = []
-        trigger_spans = []
+        # trigger_spans = []
         token_span = []
-        trigger_span = []
+        # trigger_span = []
         to_labels = []
         for j,token_label in enumerate(token_labels[sent_num]):
 
-            trigger_label = trigger_labels[sent_num][j]
+            # trigger_label = trigger_labels[sent_num][j]
             if token_label == "O" and token_span:
                 token_spans.append(token_span)
                 to_labels.append(prev_token_label)
                 token_span = []
-            elif token_label != "O":
+
+            elif token_label.startswith("B-"):
                 if not token_span:
                     token_span.append(j)
                 else:
-                    if prev_token_label == token_label:
+                    token_spans.append(token_span)
+                    to_labels.append(prev_token_label)
+                    token_span = [j]
+                prev_token_label = token_label[2:]
+
+            elif token_label.startswith("I-"):
+                if not token_span:
+                    token_span.append(j)
+                else:
+                    if prev_token_label == token_label[2:]:
                         token_span.append(j)
                     else:
                         token_spans.append(token_span)
                         to_labels.append(prev_token_label)
                         token_span = [j]
-                prev_token_label = token_label
+                prev_token_label = token_label[2:]
 
-            if trigger_label == "O" and trigger_span:
-                trigger_spans.append(trigger_span)
-                trigger_span = []
-            elif trigger_label.startswith("B-"):
-                if trigger_span:
-                    trigger_spans.append(trigger_span)
-                    trigger_span = []
-                else:
-                    trigger_span.append(j)
-            elif trigger_label.startswith("I-"):
-                trigger_span.append(j)
+            # if trigger_label == "O" and trigger_span:
+            #     trigger_spans.append(trigger_span)
+            #     trigger_span = []
+            # elif trigger_label.startswith("B-"):
+            #     if trigger_span:
+            #         trigger_spans.append(trigger_span)
+            #         trigger_span = []
+            #     else:
+            #         trigger_span.append(j)
+            # elif trigger_label.startswith("I-"):
+            #     trigger_span.append(j)
 
-        for span in trigger_spans:
-            span = [doc[doc_id + ".text.1.p.1.s." + str(sent_num+1) + ".w." + str(x+1)] for x in span]
-            span[0].add(folia.Entity, *span, cls="trigger", set=foliaset, annotator="BERT", annotatortype="auto")
+        # for span in trigger_spans:
+        #     span = [doc[doc_id + ".text.1.p.1.s." + str(sent_num+1) + ".w." + str(x+1)] for x in span]
+        #     span[0].add(folia.Entity, *span, cls="trigger", set=foliaset, annotator="BERT", annotatortype="auto")
 
         for j,span in enumerate(token_spans):
             span = [doc[doc_id + ".text.1.p.1.s." + str(sent_num+1) + ".w." + str(x+1)] for x in span]
-            span[0].add(folia.Entity, *span, cls=to_labels[j], set=foliaset, annotator="Neuroner", annotatortype="auto")
+            span[0].add(folia.Entity, *span, cls=to_labels[j], set=foliaset, annotator="BERT", annotatortype="auto")
 
     doc.save()
 

@@ -21,6 +21,3 @@ wapiti3==3.0.1
 geograpy3==0.1.2
 geopy==1.20.0
 newspaper3k==0.2.8
-
-#neuroner
-pyneuroner[cpu]==1.0.7
