@@ -14,3 +14,5 @@ bin/neuroner/test_folder/test/
 output/
 data/temp
 *.swp
+trace.txt*
+nextflow_output.txt
