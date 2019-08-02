@@ -15,6 +15,7 @@ nextflowOP=[] #nextflow stdouts
 for x,l in enumerate(links): 
     script="nextflow run emw_pipeline.nf"
     while 1: # while there is no answer from the API, wait
+            #time.sleep(20)
             try:
                 r = requests.get(url = l) 
                 print(pyscript[x]," is working on  ",l ,"tmux session name ",str(x))
@@ -30,13 +31,19 @@ for x,l in enumerate(links):
                         os.popen('tmux new-session -d -s'+ str(x)+" \'"+pyscript[x]+"\'" )
                 #else:
                        # print("server is loading")
-                time.sleep(20)
-    if x>0:
-        _=os.popen(script+" -resume").read() # execute nextflow run with resume after first time
-        nextflowOP.append(_)
-    else:
+            time.sleep(20)
+    if x==0:
         _=os.popen(script).read()
         nextflowOP.append(_)
+        print("00")
+    elif x==3:
+        _=os.popen(script+" -resume -with-trace trace.txt").read() # execute nextflow run with resume after first time
+        nextflowOP.append(_)
+        print("333333")
+    else :
+        _=os.popen(script+" -resume").read() # execute nextflow run with resume after first time
+        nextflowOP.append(_)
+        print(x)
     print("tmux kill-session -t "+str(x))
     os.popen("tmux kill-session -t "+str(x) )
 #print(nextflowOP)
