@@ -108,12 +108,12 @@ process sent_classifier {
     """
 }
 
-process trigger_classifier {
-//    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.sent").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }   
+process token_classifier {
+//    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.sent").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from sent_out.collect().flatten()
     script:
     """
-    python3 /emw_pipeline_nf/bin/trigger_classifier.py --data '$in_json' --out_dir $params.outdir
+    python3 /emw_pipeline_nf/bin/token_classifier.py --data '$in_json' --out_dir $params.outdir
     """
 }
