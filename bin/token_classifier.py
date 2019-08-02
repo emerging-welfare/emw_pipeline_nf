@@ -16,16 +16,16 @@ def get_args():
 
     return(args)
 
-def request(id,sentences):
-    r = requests.post(url = "http://localhost:4998/queries", json={'identifier':id,'sentences':sentences})
+def request(sentences):
+    r = requests.post(url = "http://localhost:4998/queries", json={'sentences':sentences})
     return json.loads(r.text)
 
 if __name__ == "__main__":
     args = get_args()
     data = load_from_json(args.data)
 
-    rtext = request(data["id"], data["sentences"])
+    rtext = request(data["sentences"])
     data["tokens"] = rtext["tokens"]
-    data["trigger_labels"] = rtext["output"]
+    data["token_labels"] = rtext["output"]
 
     write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

@@ -6,7 +6,7 @@ params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
 params.source = 4
 params.doc_batchsize = 16
-params.trigger_batchsize = 8
+params.token_batchsize = 8
 params.prefix = "$baseDir"
 
 html_channel = Channel.fromPath(params.input)
@@ -91,14 +91,14 @@ process sent_classifier {
 	"""
 }
 
-process trigger_classifier {
+process token_classifier {
     // errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File(params.outdir + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.sent").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     errorStrategy 'ignore'
     // TODO : New errorStrategy needed
-    input:
-        val(in_json) from sent_out.collate(params.trigger_batchsize)
+   input:
+        val(in_json) from sent_out.collate(params.token_batchsize)
     script:
     """
-    python3 $params.prefix/bin/trigger_classifier_batch.py --data '$in_json' --out_dir $params.outdir
+    python3 $params.prefix/bin/token_classifier_batch.py --data '$in_json' --out_dir $params.outdir
     """
 }

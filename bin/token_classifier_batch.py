@@ -9,8 +9,8 @@ def get_args():
     '''
     This function parses and return arguments passed in
     '''
-    parser = argparse.ArgumentParser(prog='trigger_classifier.py',
-                                     description='Trigger FLASK BERT Classififer Application ')
+    parser = argparse.ArgumentParser(prog='token_classifier_batch.py',
+                                     description='Token FLASK BERT Classififer Application ')
     parser.add_argument('--data', help="Serialized json string")
     parser.add_argument('--out_dir', help="output folder")
     args = parser.parse_args()
@@ -33,10 +33,10 @@ if __name__ == "__main__":
     rtext = request(str([data["sentences"] for data in jsons]))
 
     all_tokens = rtext["tokens"]
-    all_trigger_labels = rtext["output"]
+    all_token_labels = rtext["output"]
 
     output_data = list()
     for i,data in enumerate(jsons):
         data["tokens"] = all_tokens[i]
-        data["trigger_labels"] = all_trigger_labels[i]
+        data["token_labels"] = all_token_labels[i]
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
