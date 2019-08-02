@@ -151,13 +151,13 @@ class queryList(Resource):
 
 
 max_seq_length = 512
-model_path = "/.pytorch_pretrained_bert/trigger_model.pt"
+model_path = "/.pytorch_pretrained_bert/token_model.pt"
 bert_model = "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 # device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
-label_list = ["B-trigger", "I-trigger", "O"]
+label_list = ["B-etime", "B-fname", "B-organizer", "B-participant", "B-place", "B-target", "B-trigger", "I-etime", "I-fname", "I-organizer", "I-participant", "I-place", "I-target", "I-trigger", "O"]
 label_map = {}
 for (i, label) in enumerate(label_list):
     label_map[i] = label

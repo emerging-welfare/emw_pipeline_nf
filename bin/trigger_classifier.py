@@ -2,7 +2,7 @@
 import argparse
 import json
 import requests
-from utils import dump_to_json
+from utils import write_to_json
 from utils import load_from_json
 
 def get_args():
@@ -12,6 +12,7 @@ def get_args():
     parser = argparse.ArgumentParser(prog='trigger_classifier.py',
                                      description='Trigger FLASK BERT Classififer Application ')
     parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
 
     return(args)
@@ -28,4 +29,4 @@ if __name__ == "__main__":
     data["tokens"] = rtext["tokens"]
     data["trigger_labels"] = rtext["output"]
 
-    print(dump_to_json(data))
+    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
