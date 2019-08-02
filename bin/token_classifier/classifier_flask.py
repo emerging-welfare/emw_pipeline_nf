@@ -130,7 +130,6 @@ def predict(tokens):
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('identifier', required=True)
         parser.add_argument('sentences', required=False, type=str, action='append', default=[])
         parser.add_argument('output', required=False)
         args = parser.parse_args()
