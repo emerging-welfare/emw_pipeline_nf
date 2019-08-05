@@ -3,7 +3,6 @@ import json
 import requests
 import re
 from utils import write_to_json
-from utils import load_from_json
 
 def get_args():
     '''
@@ -23,15 +22,9 @@ def request(sentences):
 
 if __name__ == "__main__":
     args = get_args()
-
-    json_data = re.findall(r'\{"[^\}]+?"\]?\}', args.data)
-    jsons = []
-    for data in json_data:
-        data = load_from_json(data)
-        jsons.append(data)
+    jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
 
     rtext = request(str([data["sentences"] for data in jsons]))
-
     all_tokens = rtext["tokens"]
     all_token_labels = rtext["output"]
 

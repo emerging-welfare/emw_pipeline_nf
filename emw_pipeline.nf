@@ -80,9 +80,9 @@ process classifier {
 }
 
 process sent_classifier {
-    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null || in_json == "N") { return 'ignore' } ; in_json = in_json.findAll(/\{\".+?\"\]?\}/).flatten(); for (String s in in_json) {data = jsonSlurper.parseText(s); new File(params.outdir + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    errorStrategy { try { if (in_json == null || in_json == "N") { return 'ignore' }; in_json = Eval.me(in_json).flatten(); for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
-        val(in_json) from classifier_out.filter({ it != "N" }).flatMap { n -> n.findAll(/\{\".+?\"\}/) }
+        val(in_json) from classifier_out.filter({ it != "N" }).flatMap { n -> Eval.me(n) }
     output:
         stdout(out_json) into sent_out
     script:

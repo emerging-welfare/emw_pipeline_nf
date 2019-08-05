@@ -4,7 +4,6 @@ import requests
 import re
 from utils import write_to_json
 from utils import dump_to_json
-from utils import load_from_json
 
 def get_args():
     '''
@@ -24,12 +23,7 @@ def request(texts):
 
 if __name__ == "__main__":
     args = get_args()
-
-    json_data = re.findall(r'\{"[^\}]+?"\]?\}', args.data)
-    jsons = []
-    for data in json_data:
-        data = load_from_json(data)
-        jsons.append(data)
+    jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
 
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
