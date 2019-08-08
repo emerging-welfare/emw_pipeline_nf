@@ -2,12 +2,15 @@ import argparse
 import re
 import lxml.html
 from fuzzywuzzy import fuzz
-from utils import dump_to_json
+# from utils import dump_to_json
 from utils import load_from_json
+from utils import write_to_json
+from utils import change_extension
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_dir', help="Path to input file")
+    parser.add_argument('--out_dir', help="Path to output folder")
     parser.add_argument('--data', help="Serialized json string")
     parser.add_argument('--source', help="Source of the article")
     args = parser.parse_args()
@@ -38,7 +41,8 @@ def deletecertainstr(lines, stoplist1=None, stoplist2=None, stoplist3=None):
     if stoplist1 is not None:
         for i in range(0,len(lines)):
             firstline = lines[i]
-            firstline = firstline.strip()
+            # firstline = firstline.strip()
+            firstline = re.sub(r"\n|\r", r"", firstline)
             if any(firstline == word for word in stoplist):
                 for j in range(i, len(lines)):
                     del lines[i]
@@ -269,11 +273,12 @@ def main(args):
             if text:
                 text = "".join([line.strip() + "\n" if line.strip() != "" else "" for line in text])[:-1]
                 data["text"] = text
-                data = dump_to_json(data)
 
     return data
 
 if __name__ == "__main__":
     args = get_args()
     data = main(args)
-    print(data)
+    # print(dump_to_json(data))
+    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+    print('"' + change_extension(data["id"], ex=".json") + '"')

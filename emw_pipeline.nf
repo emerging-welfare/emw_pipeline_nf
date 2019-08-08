@@ -1,11 +1,11 @@
 #!/usr/bin/env nextflow
 
-params.input_dir = "$baseDir/../random10000"
+params.input_dir = "$baseDir/data"
 params.input = "$params.input_dir/http*"
-params.outdir = "$baseDir/asd/"
+params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
 params.source = 3
-params.doc_batchsize = 32
+params.doc_batchsize = 48
 params.token_batchsize = 8
 params.prefix = "$baseDir"
 
@@ -35,7 +35,7 @@ process extract {
 	"""
 	else if ( params.source == 3 )
         """
-	    python2 $params.prefix/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	    python3 $params.prefix/bin/extract/ind.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
 	"""
 	else if ( params.source == 4 )
         """
@@ -53,27 +53,28 @@ process extract {
 	    error "No source as : ${params.source}"
 }
 
-process doc_preprocess {
-    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File(params.outdir + data["id"] + "json.extract").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-    input:
-        val(in_json) from extract_out
-    output:
-        stdout(out_json) into preprocess_out
-    script:
-	"""
-	python3 $params.prefix/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source
-	"""
-}
+// process doc_preprocess {
+//     errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File(params.outdir + data["id"] + "json.extract").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+//     input:
+//         val(in_json) from extract_out
+//     output:
+//         stdout(out_json) into preprocess_out
+//     script:
+// 	"""
+// 	python3 $params.prefix/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source --out_dir $params.outdir
+// 	"""
+// }
 
 process classifier {
-    errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    errorStrategy 'ignore'
     input:
-        val(in_json) from preprocess_out.collate(params.doc_batchsize)
+        val(in_json) from extract_out.collate(params.doc_batchsize)
     output:
         stdout(out_json) into classifier_out
     script:
         """
-        python3 $params.prefix/bin/classifier_batch.py --data '$in_json' --out_dir $params.outdir
+        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
         """
 }
 

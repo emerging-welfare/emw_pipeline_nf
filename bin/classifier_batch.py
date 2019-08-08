@@ -11,7 +11,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier.py',
                                      description='Document FLASK SVM Classififer Application ')
-    parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--input_files', help="Input file")
     parser.add_argument('--out_dir', help="output folder")
     args = parser.parse_args()
 
@@ -23,7 +23,14 @@ def request(texts):
 
 if __name__ == "__main__":
     args = get_args()
-    jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
+    # jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
+
+    files = eval(args.input_files)
+
+    jsons = []
+    for filename in files:
+        with open(args.out_dir + filename, "r", encoding="utf-8") as f:
+            jsons.append(json.loads(f.read()))
 
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
