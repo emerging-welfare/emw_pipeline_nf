@@ -139,8 +139,8 @@ model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/doc_model.pt"
 # svm_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/svm_model.pkl"
 
 num_labels = len(label_list)
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0")
 # svm_model = joblib.load(svm_model)
 
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
@@ -150,6 +150,7 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
+model = torch.nn.DataParallel(model, device_ids=[0,1,2,3,4,5], output_device=device, dim=0)
 model.to(device)
 
 api.add_resource(queryList, '/queries')

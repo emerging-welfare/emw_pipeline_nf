@@ -38,7 +38,5 @@ if __name__ == "__main__":
             data["sentences"] = event_sentences.pop()
             output_data.append(dump_to_json(data))
 
-    if len(output_data) == 0:
-        print("N")
-    else:
+    if len(output_data) > 0:
         print(str(output_data))

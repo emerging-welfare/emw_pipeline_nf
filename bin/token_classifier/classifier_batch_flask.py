@@ -153,7 +153,6 @@ class queryList(Resource):
 
         args["sentences"] = eval(args["sentences"])
 
-        print(args["sentences"])
         all_tokens = []
         for sentences in args["sentences"]:
             tokens = ["SAMPLE_START"]
@@ -178,7 +177,9 @@ model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/token_model.pt"
 bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:7")
+
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 label_list = ["B-etime", "B-fname", "B-organizer", "B-participant", "B-place", "B-target", "B-trigger", "I-etime", "I-fname", "I-organizer", "I-participant", "I-place", "I-target", "I-trigger", "O"]
 label_map = {}
@@ -192,7 +193,7 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
-# model = nn.DataParallel(model, device_ids=[4,5], dim=0)
+# model = torch.nn.DataParallel(model, device_ids=[4,5,6], output_device=device, dim=0)
 model.to(device)
 
 api.add_resource(queryList, '/queries')

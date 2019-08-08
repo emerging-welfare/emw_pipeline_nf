@@ -18,7 +18,7 @@ def main(args):
     g = Goose()
     article = g.extract(raw_html=html_string)
     data = {}
-    data["text"] = text
+    data["text"] = article.cleaned_text
     data["id"] = filename
     data = dump_to_json(data)
     return data
