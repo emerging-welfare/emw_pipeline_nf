@@ -108,7 +108,7 @@ def predict(all_tokens):
     temp_labels = numpy.argmax(logits, axis=-1).tolist()
 
     all_labels = []
-    for labels, all_org_input_mask in zip(temp_labels, all_org_input_mask):
+    for labels, org_input_mask, tokens in zip(temp_labels, all_org_input_mask, all_tokens):
         labels = labels[0:len(org_input_mask)]
         new_labels = []
         j = 0
@@ -177,7 +177,6 @@ model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/token_model.pt"
 bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 
-# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 device = torch.device("cuda:7")
 
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
@@ -193,7 +192,6 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
-# model = torch.nn.DataParallel(model, device_ids=[4,5,6], output_device=device, dim=0)
 model.to(device)
 
 api.add_resource(queryList, '/queries')

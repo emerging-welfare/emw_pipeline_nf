@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-params.input_dir = "$baseDir/data"
+params.input_dir = "$baseDir/../indianexpress_news"
 params.input = "$params.input_dir/http*"
 params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
@@ -18,6 +18,42 @@ println(params.input)
 // Source 5 scm
 // Source 6 people
 
+// process extract {
+//     errorStrategy 'ignore'
+//     input:
+//         file(filename) from html_channel
+//     output:
+//         stdout(out_json) into extract_out
+//     script:
+// 	if ( params.source == 1 )
+//         """
+// 	    python3 $params.prefix/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
+// 	"""
+// 	else if ( params.source == 2 )
+//         """
+// 	    python2 $params.prefix/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+// 	"""
+// 	else if ( params.source == 3 )
+//         """
+// 	    python3 $params.prefix/bin/extract/ind.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
+// 	"""
+// 	else if ( params.source == 4 )
+//         """
+// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+// 	"""
+// 	else if ( params.source == 5 )
+//         """
+// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
+// 	"""
+// 	else if ( params.source == 6 )
+//         """
+// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
+// 	"""
+// 	else
+// 	    error "No source as : ${params.source}"
+// }
+
+
 process extract {
     errorStrategy 'ignore'
     input:
@@ -25,33 +61,18 @@ process extract {
     output:
         stdout(out_json) into extract_out
     script:
-	if ( params.source == 1 )
-        """
-	    python3 $params.prefix/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
+	def asd = ".json"
+	def file = new File(params.outdir + filename + ".json")
+	if ( file.exists() )
 	"""
-	else if ( params.source == 2 )
-        """
-	    python2 $params.prefix/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
+	    echo '"$filename$asd"'
 	"""
-	else if ( params.source == 3 )
+	else
         """
 	    python3 $params.prefix/bin/extract/ind.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
 	"""
-	else if ( params.source == 4 )
-        """
-	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
-	"""
-	else if ( params.source == 5 )
-        """
-	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
-	"""
-	else if ( params.source == 6 )
-        """
-	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
-	"""
-	else
-	    error "No source as : ${params.source}"
 }
+
 
 // process doc_preprocess {
 //     errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File(params.outdir + data["id"] + "json.extract").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
@@ -99,3 +120,16 @@ process token_classifier {
     python3 $params.prefix/bin/token_classifier_batch.py --data '$in_json' --out_dir $params.outdir
     """
 }
+
+
+// process token_classifier {
+//    errorStrategy 'ignore'
+//    input:
+//         val(filename) from html_channel.collate(params.token_batchsize)
+//     script:
+//     filename = filename.collect { '"' + it + '"' }
+    
+//     """
+//     python3 $params.prefix/bin/token_classifier_batch.py --input_files '$filename' --out_dir $params.outdir
+//     """
+// }

@@ -4,8 +4,13 @@ import json
 def remove_path(filename):
     return re.search(r"[^\/]+$", filename).group(0)
 
+def filename_to_url(filename):
+    url = re.sub(r"___?", r"://", filename)
+    url = re.sub(r"_", r"/", url)
+    return url
+
 def change_extension(filename, ex=""):
-    return re.sub("(\.html?|\.cms|\.ece\d?)$", ex, filename)
+    return re.sub("(\.html?|\.cms|\.ece\d?|\.json|)$", ex, filename)
 
 def write_to_json(data, filename, extension=None, out_dir=""):
     if extension is not None:
@@ -29,10 +34,15 @@ def dump_to_json(data, add_label=False):
 
     return data
 
+def print_token_and_label(tokens, token_labels):
+    for token,label in zip(tokens, token_labels):
+        print("%s %s"%(token,label))
+
 def postprocess(data):
     all_tokens = []
     # sent_count = 0
     all_token_labels = []
+
     for i, token in enumerate(data["tokens"]):
         if token == "SAMPLE_START":
             token_labels = []
