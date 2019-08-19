@@ -5,10 +5,10 @@ import requests
 
 os.environ['PYTHONPATH']="/emw_pipeline_nf/bin"
 l="http://localhost:"
-ports=["5000/","4999/","4998/"] #used ports 
+ports=["5000/","4999/","4998/","4996/"] #used ports 
 links=[l+ p for p in ports] #l+ports 
 APIpaths=["classifier/classifier_flask.py ",
-"sent_classifier/classifier_flask.py","token_classifier/classifier_flask.py"] # API paths 
+"sent_classifier/classifier_flask.py","token_classifier/classifier_flask.py","violent_classifier/classifier_flask.py"] # API paths 
 pyscript=["python3 /emw_pipeline_nf/bin/"+x for x in APIpaths]
 nextflowOP=[] #nextflow stdouts 
 for x,l in enumerate(links): 

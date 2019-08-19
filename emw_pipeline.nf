@@ -112,8 +112,19 @@ process token_classifier {
 //    errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File("jsons/" + data["id"].replaceAll("\\.[^\\.]+$", ".") + "json.sent").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     input:
         val(in_json) from sent_out.collect().flatten()
+    output:
+	stdout(out_json) into token_out
     script:
     """
-    python3 /emw_pipeline_nf/bin/token_classifier.py --data '$in_json' --out_dir $params.outdir
+    python3 /emw_pipeline_nf/bin/token_classifier.py --data '$in_json'
     """
 }
+process violent_classifier {
+    input:
+        val(in_json) from token_out.collect().flatten()
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/violent_classifier.py --data '$in_json' --out_dir $params.outdir
+    """
+} 
+		
