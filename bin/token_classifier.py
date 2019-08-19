@@ -4,7 +4,7 @@ import json
 import requests
 from utils import write_to_json
 from utils import load_from_json
-
+from utils import dump_to_json
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -12,7 +12,7 @@ def get_args():
     parser = argparse.ArgumentParser(prog='trigger_classifier.py',
                                      description='Trigger FLASK BERT Classififer Application ')
     parser.add_argument('--data', help="Serialized json string")
-    parser.add_argument('--out_dir', help="Output folder")
+#    parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
 
     return(args)
@@ -29,4 +29,5 @@ if __name__ == "__main__":
     data["tokens"] = rtext["tokens"]
     data["token_labels"] = rtext["output"]
 
-    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+#    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+    print(dump_to_json(data))
