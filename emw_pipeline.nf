@@ -120,10 +120,20 @@ process token_classifier {
 }
 process violent_classifier {
     input:
-        val(in_json) from token_out
+        val(in_json) from token_out.collect().flatten()
+    output:
+        stdout(out_json) into violent_classifier_out
     script:
     """
-    python3 /emw_pipeline_nf/bin/violent_classifier.py --data '$in_json' --out_dir $params.outdir
+    python3 /emw_pipeline_nf/bin/violent_classifier.py --data '$in_json' 
     """
 } 
 
+process geocoding {
+    input:
+        val(in_json) from violent_classifier_out.collect().flatten()
+    script:
+    """
+    python3 /emw_pipeline_nf/bin/osmnames_sphinxsearch.py --data '$in_json' --out_dir $params.outdir
+    """
+} 
