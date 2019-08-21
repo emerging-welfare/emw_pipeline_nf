@@ -16,3 +16,4 @@ data/temp
 *.swp
 trace.txt*
 nextflow_output.txt
+*.pickle

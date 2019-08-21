@@ -34,6 +34,9 @@ RUN mkdir /.pytorch_pretrained_bert && cd /.pytorch_pretrained_bert && wget http
 # Tokenizer
 RUN python3 -c "import nltk;nltk.download('popular', halt_on_error=False)"
 
+#osmnames 
+RUN cd /emw_pipeline_nf/bin && git clone https://github.com/alabrashJr/osmnames-sphinxsearch && cd osmnames-sphinxsearch && chmod +x shellDockerfile.sh && ./shellDockerfile.sh
+
 # DCT depenedecy
 RUN git clone https://github.com/Jekub/Wapiti && cd Wapiti && make install
 

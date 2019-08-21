@@ -10,6 +10,9 @@ links=[l+ p for p in ports] #l+ports
 APIpaths=["classifier/classifier_flask.py ",
 "sent_classifier/classifier_flask.py","token_classifier/classifier_flask.py","violent_classifier/classifier_flask.py"] # API paths 
 pyscript=["python3 /emw_pipeline_nf/bin/"+x for x in APIpaths]
+print("starting osmnames geocoding server")
+os.popen("tmux new-session -d -s osmnames_sphinxsearch_session  \'/usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf\'")
+
 nextflowOP=[] #nextflow stdouts 
 for x,l in enumerate(links): 
     script="nextflow run emw_pipeline.nf"
