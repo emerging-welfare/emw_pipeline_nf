@@ -11,41 +11,6 @@ from utils import remove_path
 from utils import dump_to_json
 
 
-def check_encoding(input_dir):
-    pos_count = 0
-    count = 0
-    for dirname, _, filenames in os.walk(input_dir):
-        for filename in filenames:
-            full_name = os.path.join(dirname, filename)
-            content = []
-            if full_name.endswith(".DS_Store") or full_name.endswith(".meta"):
-                continue
-            elif os.path.getsize(full_name) > 0:
-                pos_count += check_encoding_file(full_name)
-            else:
-                print("%s is empty" % (full_name))
-        count += 1
-    print("Checked %s files, %s is ok" % (count, pos_count))
-
-
-def check_encoding_file(full_name):
-    with codecs.open(full_name, "r", "utf-8") as inputfile:
-        # with io.open(full_name,"r") as inputfile:
-        try:
-            content = inputfile.read()
-            if check_encoding_string(h.unescape(content)):
-                UNESCAPE = True
-            elif check_encoding_string(h.unescape(content.encode("latin1"))):
-                LATIN = True
-                print("%s is Latin encoded" % (full_name))
-            else:
-                print("%s is not Portuguese" % (full_name))
-                return False
-        except UnicodeDecodeError:
-            pass  # print("Couldn't read %s" %full_name)
-    return True
-
-
 def check_encoding_string(content):
     try:
         count = max(content.count(u"í"), content.count(u"á"), content.count(u"é"), content.count(u"ã"))
@@ -185,43 +150,7 @@ def clean_more(page):
     [link.extract() for link in links]
 
 
-###########################
 
-def parse_page(infilename):
-    page = get_soup_page(infilename)
-    title = get_title(page, infilename)
-    clean_page(page)
-    content = parse_html(page)
-    try:
-        clean_more(content)
-    except AttributeError:
-        sys.stderr.write("Content gives Att Error, %s\n" % infilename)
-        return None, None
-    return content.text.strip("|\n ?"), title
-
-
-def parse_html(page):
-    try:
-        table = page.find("table", {"id": "main"})
-        if table is not None:
-            page = table
-    except:
-        print("***************")
-    try:
-        tds = page.findAll("td")
-        content = tds[-2]  # throws IndexError if tds empty
-        for td_ind in range(1, len(tds)):
-            content = tds[-1 * td_ind]
-            if content.find("b"):
-                # print(-1*td_ind)
-                break
-    except IndexError:
-        try:
-            content = page.find("div", {"id": "articleNew"})
-        except:
-            sys.stderr.write("Error line 56")
-            return None
-    return content
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file', help="Path to input file")

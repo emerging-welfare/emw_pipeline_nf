@@ -17,3 +17,4 @@ data/temp
 trace.txt*
 nextflow_output.txt
 *.pickle
+DTC_Nextflow/
