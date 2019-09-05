@@ -5,7 +5,7 @@ params.input_dir = "$baseDir/data"
 params.input = "$params.input_dir/*html"
 params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
-params.source = 4
+params.source = 7
 
 html_channel = Channel.fromPath(params.input)
 println(params.input)
@@ -15,7 +15,7 @@ println(params.input)
 // Source 4 thehin
 // Source 5 scm
 // Source 6 people
-
+//Source 7 thehin_abd_version
 process extract {
 //    errorStrategy 'ignore'
     input:
@@ -47,6 +47,12 @@ process extract {
         """
 	    python2 /emw_pipeline_nf/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
 	"""
+	else if ( params.source == 7 )
+        """
+	    python3 /emw_pipeline_nf/bin/extract/extract_from_html.py --input_file "$params.input_dir/$filename"
+	"""
+
+
 	else
 	    error "No source as : ${params.source}"
 }
