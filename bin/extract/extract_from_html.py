@@ -67,16 +67,16 @@ def check_encoding_string(content):
 
 
 def write_parsed_page_alt(infilename):
-    content, title, time,w = parse_page_alternative(infilename)
+    content, title, time = parse_page_alternative(infilename)
     if content is None or content is u"":
         sys.stderr.write("Empty result return for %s.\n" % infilename)
-        return (' ', None)
+        return (' ', title,time)
     if check_encoding_string(content):
         pass
     elif check_encoding_string(content):
         content = content.encode()
         title = title.encode()
-    return (content, title, time,w)
+    return content, title, time
     if debug:
         print("[CLEANED CONTENT] %s\n" % content)
         # sys.stdout.write("[UNICODE CONTENT] %s\n" %unicode_content)
@@ -108,7 +108,7 @@ def parse_page_alternative(infilename):
         mylist = [re.sub(r"^\s+|\s+$", "", x) for x in value.split("\n") if not re.match(r"^ {1,}$",x)]
         mylist=[x for x in mylist if x!=""]
         if mylist:
-            return "\n".join(mylist), title, time,warning
+            return "\n".join(mylist), title, time
     except :
         pass
     try:
@@ -117,7 +117,7 @@ def parse_page_alternative(infilename):
     except AttributeError:
         traceback.print_exc()
         sys.stderr.write("No body in %s\n" % infilename)
-        return None, None
+        return None, title, time
     content_raw = ''.join(BeautifulSoup(value, "html.parser").findAll(text=True))
     mylist = content_raw.split("\n")
     mylist_cleaned = []
@@ -139,7 +139,7 @@ def parse_page_alternative(infilename):
     if warning:
         print("This link might be not relative\t",infilename.split("/")[-1].replace("___", "://").replace("_", "/"))
 
-    return content, title, time,warning
+    return content, title, time
 
 
 def get_soup_page(infilename):
