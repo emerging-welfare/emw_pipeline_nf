@@ -206,3 +206,29 @@ def clean_more(page):
     # [br.extract() for br in brs]
     links = page.findAll("a")
     [link.extract() for link in links]
+
+
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_file', help="Path to input file") 
+    parser.add_argument('--no_byte', help="If html file needs to be read with 'r' tag.", action="store_true") # Only pass for scmp articles
+    args = parser.parse_args()
+    return args
+
+def main(args):
+    filename = args.input_file    
+    content,title,time=write_parsed_page_alt(filename) 
+    filename = remove_path(filename)
+    data={}
+    data["id"] = filename
+    data["title"]=title
+    data["text"] = title+"\n"+time+"\n"+content
+    data = dump_to_json(data) 
+    return data   
+
+if __name__ == "__main__":
+    args = get_args()    
+    data = main(args)    
+    print(data)
