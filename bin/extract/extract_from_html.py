@@ -1,6 +1,7 @@
 # !/usr/bin/env python3
 #This Script was written by Cagil Orignally, adjusts are made by aalabrash18@ku.edu.tr
 # - *- coding: utf- 8 - *-
+
 import argparse, os, sys, io, traceback, codecs
 from bs4 import BeautifulSoup, Comment
 UNESCAPE = True
@@ -9,6 +10,43 @@ from lxml import etree
 import re
 from utils import remove_path
 from utils import dump_to_json
+
+# Ignore converting links from HTML
+
+
+def check_encoding(input_dir):
+    pos_count = 0
+    count = 0
+    for dirname, _, filenames in os.walk(input_dir):
+        for filename in filenames:
+            full_name = os.path.join(dirname, filename)
+            content = []
+            if full_name.endswith(".DS_Store") or full_name.endswith(".meta"):
+                continue
+            elif os.path.getsize(full_name) > 0:
+                pos_count += check_encoding_file(full_name)
+            else:
+                print("%s is empty" % (full_name))
+        count += 1
+    print("Checked %s files, %s is ok" % (count, pos_count))
+
+
+def check_encoding_file(full_name):
+    with codecs.open(full_name, "r", "utf-8") as inputfile:
+        # with io.open(full_name,"r") as inputfile:
+        try:
+            content = inputfile.read()
+            if check_encoding_string(h.unescape(content)):
+                UNESCAPE = True
+            elif check_encoding_string(h.unescape(content.encode("latin1"))):
+                LATIN = True
+                print("%s is Latin encoded" % (full_name))
+            else:
+                print("%s is not Portuguese" % (full_name))
+                return False
+        except UnicodeDecodeError:
+            pass  # print("Couldn't read %s" %full_name)
+    return True
 
 
 def check_encoding_string(content):
@@ -29,7 +67,7 @@ def check_encoding_string(content):
 
 
 def write_parsed_page_alt(infilename):
-    content, title = parse_page_alternative(infilename)
+    content, title, time,w = parse_page_alternative(infilename)
     if content is None or content is u"":
         sys.stderr.write("Empty result return for %s.\n" % infilename)
         return (' ', None)
@@ -38,7 +76,7 @@ def write_parsed_page_alt(infilename):
     elif check_encoding_string(content):
         content = content.encode()
         title = title.encode()
-    return (content, title)
+    return (content, title, time,w)
     if debug:
         print("[CLEANED CONTENT] %s\n" % content)
         # sys.stdout.write("[UNICODE CONTENT] %s\n" %unicode_content)
@@ -53,6 +91,7 @@ def parse_page_alternative(infilename):
     htmlparser = etree.HTMLParser(remove_comments=True)
     doc = etree.HTML(open(infilename, "r",encoding="latin1").read(), htmlparser)
     title = get_title(doc, page)
+    time = get_time(page)
     clean_page(page)
     clean_more(page)
     warning=False
@@ -69,7 +108,7 @@ def parse_page_alternative(infilename):
         mylist = [re.sub(r"^\s+|\s+$", "", x) for x in value.split("\n") if not re.match(r"^ {1,}$",x)]
         mylist=[x for x in mylist if x!=""]
         if mylist:
-            return "\n".join(mylist), title
+            return "\n".join(mylist), title, time,warning
     except :
         pass
     try:
@@ -97,10 +136,10 @@ def parse_page_alternative(infilename):
             if len(item.strip().lstrip()) > 2:
                 mylist_cleaned.append(item.strip().lstrip())
         content = "\n".join([line for line in mylist_cleaned if line.strip() is not u"" and len(line.split(" ")) > 3])
-    #if warning:
-        #print("This link might be not relative\t",infilename.split("/")[-1].replace("___", "://").replace("_", "/"))
+    if warning:
+        print("This link might be not relative\t",infilename.split("/")[-1].replace("___", "://").replace("_", "/"))
 
-    return content, title
+    return content, title, time,warning
 
 
 def get_soup_page(infilename):
@@ -115,7 +154,7 @@ def get_soup_page(infilename):
 
 def get_title(doc, page):  # can get rid of infilename and exceptions
     title = doc.xpath("//title/text()")
-    title = "".join([i for i in title]).strip().lstrip()
+    title = "".join([i for i in title])
     if title:
         return title
     else:
@@ -129,6 +168,25 @@ def get_title(doc, page):  # can get rid of infilename and exceptions
             sys.stderr.write("Title TypeError at %s\n" % infilename)
             title = u" "
             return title
+
+
+def get_time(page):
+    spans = page.find_all('span', {'class' : 'time_cptn'})
+    if spans:
+        lines = [span.get_text() for span in spans]
+        return " ".join(" ".join(lines).split("|")[-1].rstrip().lstrip().split(":")[1:])
+    
+    divs=page.find('div', attrs={'class' : 'authorview clearfix'})
+    if divs:
+        divs=divs.findAll("span",attrs={"class":"av_i"})
+        lines = [div.get_text() for div in divs]
+        return " ".join(" ".join(lines).lstrip().split(":")[1:]).lstrip()
+    divs=page.find("div",{"class","clearfix publish_info"})
+    if divs:
+        lines = [div.get_text() for div in divs]
+        return " ".join(" ".join(lines).lstrip().split(":")[1:]).lstrip()
+    return None
+
 
 def clean_page(page):
     scripts = page.findAll("script")
@@ -148,29 +206,3 @@ def clean_more(page):
     # [br.extract() for br in brs]
     links = page.findAll("a")
     [link.extract() for link in links]
-
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input_file', help="Path to input file")
-    parser.add_argument('--no_byte', help="If html file needs to be read with 'r' tag.", action="store_true") # Only pass for scmp articles
-    args = parser.parse_args()
-    return args
-
-
-def main(args):
-    filename = args.input_file
-    content,title=write_parsed_page_alt(filename)
-    filename = remove_path(filename)
-    data={}
-    data["text"] = content
-    data["id"] = filename
-    data["title"]=title
-    data = dump_to_json(data)
-    return data
-
-if __name__ == "__main__":
-    args = get_args()
-    data = main(args)
-    print(data)
