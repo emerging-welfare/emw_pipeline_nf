@@ -174,18 +174,26 @@ def get_time(page):
     spans = page.find_all('span', {'class' : 'time_cptn'})
     if spans:
         lines = [span.get_text() for span in spans]
-        return " ".join(" ".join(lines).split("|")[-1].rstrip().lstrip().split(":")[1:])
-    
+        time=" ".join(lines).split("|")[-1].rstrip().lstrip()
+        if "Updated" in time:
+            time= " ".join(time.split("Updated:")[1:]).lstrip(":").rstrip(":").strip()
+        return time
     divs=page.find('div', attrs={'class' : 'authorview clearfix'})
     if divs:
         divs=divs.findAll("span",attrs={"class":"av_i"})
         lines = [div.get_text() for div in divs]
-        return " ".join(" ".join(lines).lstrip().split(":")[1:]).lstrip()
+        time=" ".join(lines).split("|")[-1].rstrip().lstrip()
+        if "Updated" in time:
+            time= " ".join(time.split("Updated:")[1:]).lstrip(":").rstrip(":").strip()
+        return time
     divs=page.find("div",{"class","clearfix publish_info"})
     if divs:
         lines = [div.get_text() for div in divs]
-        return " ".join(" ".join(lines).lstrip().split(":")[1:]).lstrip()
-    return None
+        time=" ".join(lines).split("|")[-1].rstrip().lstrip()
+        if "Updated" in time:
+            time= " ".join(time.split("Updated:")[1:]).lstrip(":").rstrip(":").strip()
+        return time
+    return "\n"
 
 
 def clean_page(page):
