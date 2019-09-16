@@ -35,7 +35,7 @@ RUN mkdir /.pytorch_pretrained_bert && cd /.pytorch_pretrained_bert && wget http
 RUN python3 -c "import nltk;nltk.download('popular', halt_on_error=False)"
 
 # Violent Classifier
-RUN mkdir /emw_pipeline_nf/bin/violent_classifier && cd /emw_pipeline_nf/violent_classifier && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
+RUN mkdir /emw_pipeline_nf/bin/violent_classifier && cd /emw_pipeline_nf/bin/violent_classifier && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
 
 #osmnames 
 RUN cd /emw_pipeline_nf/bin && git clone https://github.com/alabrashJr/osmnames-sphinxsearch && cd osmnames-sphinxsearch && chmod +x shellDockerfile.sh && ./shellDockerfile.sh
