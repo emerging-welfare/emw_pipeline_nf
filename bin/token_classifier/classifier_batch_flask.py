@@ -172,10 +172,10 @@ class queryList(Resource):
         return args, 201
 
 max_seq_length = 512
-
-model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/token_model.pt"
-bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+HOME=os.getenv("HOME")
+model_path = HOME +  "/.pytorch_pretrained_bert/token_model.pt"
+bert_model = HOME +  "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
+bert_vocab = HOME +  "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 
 device = torch.device("cuda:7")
 

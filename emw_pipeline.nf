@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
-params.input_dir = "$baseDir/../indianexpress_news"
-params.input = "$params.input_dir/http*"
+params.input_dir = "$baseDir/../timesofindia_500"
+params.input = "$params.input_dir/*cms"
 params.outdir = "$baseDir/jsons/"
 params.source_lang = "English"
 params.source = 3
@@ -55,7 +55,7 @@ println(params.input)
 
 
 process extract {
-    errorStrategy 'ignore'
+    //errorStrategy 'ignore'
     input:
         file(filename) from html_channel
     output:
@@ -69,7 +69,7 @@ process extract {
 	"""
 	else
         """
-	    python3 $params.prefix/bin/extract/ind.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
+	    python3 $params.prefix/bin/extract/lxml_times.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
 	"""
 }
 
@@ -88,7 +88,7 @@ process extract {
 
 process classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-    errorStrategy 'ignore'
+   // errorStrategy 'ignore'
     input:
         val(in_json) from extract_out.collate(params.doc_batchsize)
     output:

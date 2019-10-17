@@ -100,6 +100,7 @@ def predict(sentences):
 
         logits = model(input_ids, segment_ids, input_mask)
         logits = logits.detach().cpu().numpy()
+
         labels = numpy.argmax(logits, axis=1)
         all_labels.extend(labels.tolist())
 
@@ -122,10 +123,10 @@ class queryList(Resource):
 label_list = ["0", "1"]
 max_seq_length = 128
 batchsize = 32
-
-bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/sent_model.pt"
+HOME=os.getenv("HOME")
+bert_model = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
+bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+model_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
 
 num_labels = len(label_list)
 # device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")

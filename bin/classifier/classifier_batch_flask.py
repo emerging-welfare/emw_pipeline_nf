@@ -18,7 +18,7 @@ api = Api(app)
 
 PYTORCH_PRETRAINED_BERT_CACHE = Path(os.getenv('PYTORCH_PRETRAINED_BERT_CACHE',
                                                Path.home() / '.pytorch_pretrained_bert'))
-
+HOME=os.getenv("HOME")
 
 @app.route("/")
 def index():
@@ -133,9 +133,9 @@ class queryList(Resource):
 label_list = ["0", "1"]
 max_seq_length = 256
 
-bert_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = "/scratch/users/omutlu/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-model_path = "/scratch/users/omutlu/.pytorch_pretrained_bert/doc_model.pt"
+bert_model = HOME+"/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
+bert_vocab = HOME+"/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+model_path = HOME+"/.pytorch_pretrained_bert/doc_model.pt"
 # svm_model = "/scratch/users/omutlu/.pytorch_pretrained_bert/svm_model.pkl"
 
 num_labels = len(label_list)
