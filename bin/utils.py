@@ -15,9 +15,17 @@ def change_extension(filename, ex=""):
 def write_to_json(data, filename, extension=None, out_dir=""):
     if extension is not None:
         filename = change_extension(filename, ex="."+extension)
+##    json.dump(data, open(out_dir + filename, "w", encoding="utf-8"), ensure_ascii=False, sort_keys=True)
+    with open(out_dir + filename, "w", encoding="utf-8") as wr:
+         json.dump(data,wr,ensure_ascii=False,sort_keys=True)
+         wr.write('\n')
 
-    json.dump(data, open(out_dir + filename, "w", encoding="utf-8"), ensure_ascii=False, sort_keys=True)
-
+def read_from_json(fpath):
+   json_content=""
+   with open(fpath, "r", encoding="utf-8") as f:
+                json_content=json.loads(f.readline())
+   return json_content 
+	
 def load_from_json(data):
     data = re.sub(r"\[QUOTE\]", r"'", data)
     #data = re.sub(r'\!', r'!', data)

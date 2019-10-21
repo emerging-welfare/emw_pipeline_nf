@@ -4,7 +4,7 @@ import requests
 import re
 from utils import write_to_json
 from utils import dump_to_json
-
+from utils import read_from_json
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -29,9 +29,9 @@ if __name__ == "__main__":
     jsons = []
     for filename in files:
         filename=filename.strip("' ")
-        with open(args.out_dir+filename, "r", encoding="utf-8") as f:
-            jsons.append(json.loads(f.read()))
-    
+        #with open(args.out_dir+filename, "r", encoding="utf-8") as f:
+        #    jsons.append(json.loads(f.read()))
+        jsons.append(read_from_json(args.out_dir+filename))
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
     output_data = []
