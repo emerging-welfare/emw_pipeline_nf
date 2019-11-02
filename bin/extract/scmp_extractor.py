@@ -24,18 +24,19 @@ def main(args):
     doc = etree.HTML(html_string, htmlparser)
     # Add time and title
     data["title"]=" ".join(doc.xpath('//h1/text()'))
-    time=re.sub("\+[0-9].*","",doc.xpath('//meta[@property="article:published_time"]')[0].get("content"))
-    time=datetime.strptime(time,"%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d")
+    time=" ".join(doc.xpath('//div[@itemprop="dateCreated"]//text()'))
+    time=re.sub("PUBLISHED : ","",time)
+    time= datetime.strptime(time,"%A, %d %B, %Y, %H:%M%p").strftime("%Y-%m-%d") if len(time)>5 else ''
     if not time:
-        time=" ".join(doc.xpath('//div[@itemprop="dateCreated"]//text()'))
-        time=re.sub("PUBLISHED : ","",time)
-        time=datetime.strptime(time,"%A, %d %B, %Y, %H:%M%p").strftime("%Y-%m-%d")
+        node=doc.xpath('//meta[@property="article:published_time"]')
+        if node: 
+            time=re.sub("\+[0-9].*","",node[0].get("content"))
+            time=datetime.strptime(time,"%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d") if len(time)>5 else ''
 
     data["time"]=time
     updated_time=" ".join(doc.xpath('//div[@itemprop="dateModified"]//text()'))
     updated_time=re.sub("UPDATED : ","",updated_time)
-    updated_time=datetime.strptime(updated_time,"%A, %d %B, %Y, %H:%M%p").strftime("%Y-%m-%d")
-
+    updated_time=datetime.strptime(updated_time,"%A, %d %B, %Y, %H:%M%p").strftime("%Y-%m-%d") if len(updated_time)>5 else ''
     if updated_time:
         data["updated_time"]=updated_time
 
