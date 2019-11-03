@@ -18,6 +18,7 @@ def main(args):
     with open(filename, "r",encoding="utf-8") as f:
         html_string = f.read()
     data = {}
+    filename = remove_path(filename)
     data["id"] = filename
 
     htmlparser = etree.HTMLParser(remove_comments=True)
