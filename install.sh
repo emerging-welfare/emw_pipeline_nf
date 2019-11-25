@@ -1,5 +1,5 @@
 #Nextflow installation
-export NXF_VER=19.04.1
+export NXF_VER=19.10.0
 wget -qO- https://get.nextflow.io | bash
 mv nextflow ./bin
 nextflow
