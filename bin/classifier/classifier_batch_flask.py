@@ -125,8 +125,8 @@ class queryList(Resource):
         args["outputs"] = predict(args['texts'])
         args["event_sentences"] = list()
         for i,output in enumerate(args["outputs"]):
-           # if output == 1:
-           args["event_sentences"].append(sent_tokenize(args['texts'][i]))
+           if output == 1:
+                   args["event_sentences"].append(sent_tokenize(args['texts'][i]))
 
         return args, 201
 
