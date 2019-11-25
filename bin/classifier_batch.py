@@ -29,8 +29,6 @@ if __name__ == "__main__":
     jsons = []
     for filename in files:
         filename=filename.strip("' ")
-        #with open(args.out_dir+filename, "r", encoding="utf-8") as f:
-        #    jsons.append(json.loads(f.read()))
         jsons.append(read_from_json(args.out_dir+filename)) # when doc classifier component its not the first 200 finish
         #jsons.append(read_from_json(filename)) #when doc classifier component is first
     rtext = request([data["text"] for data in jsons])
@@ -40,11 +38,6 @@ if __name__ == "__main__":
         out = int(rtext["outputs"][i])
         data["doc_label"] = out
         data["length"] = len(data["text"])
-#to activate the filter untagge the below condition and untag line #128 on  bin/classifier/classifier_batch_flask.py  
-      #  if out == 0:
-      #      write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)     
-      #      output_data.append(dump_to_json(data)) # remove it 
-      #  if out == 1:
         data["sentences"] = event_sentences.pop()
         output_data.append(dump_to_json(data))
 

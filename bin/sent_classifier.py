@@ -28,7 +28,6 @@ if __name__ == "__main__":
     args = get_args()
     data = load_from_json(args.data)
 
-    # What to do when there is no positive sentence? This is more urgent in token level predictions where we filter out predicted tokens if they are not in a positive sentence.
     rtext = request(data["id"], data["sentences"])
     data["sent_labels"] = [int(i) for i in rtext["output"]]
     is_violent=request_violent(data["id"],data["text"])
