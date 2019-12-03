@@ -2,8 +2,9 @@ import argparse
 import json
 import requests
 from utils import dump_to_json
-from utils import load_from_json
-
+#from utils import load_from_json
+from utils import read_from_json
+from utils import change_extension
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -15,8 +16,8 @@ def get_args():
 
     return(args)
 
-def request(id,sentences):
-    r = requests.post(url = "http://localhost:4999/queries", json={'identifier':id,'sentences':sentences})
+def request(sentences):
+    r = requests.post(url = "http://localhost:4999/queries", json={'sentences':sentences})
     return json.loads(r.text)
 
 def request_violent(id,text):
@@ -26,10 +27,14 @@ def request_violent(id,text):
 
 if __name__ == "__main__":
     args = get_args()
-    data = load_from_json(args.data)
-
-    rtext = request(data["id"], data["sentences"])
-    data["sent_labels"] = [int(i) for i in rtext["output"]]
+#    data = load_from_json(args.data)
+    data=read_from_json(args.data)
+    if "sentences" not in data.keys():
+        data["sentences"]=[]
+        data["sent_labels"]=[]
+    else:
+        rtext = request(data["sentences"])
+        data["sent_labels"] = [int(i) for i in rtext["output"]]
     is_violent=request_violent(data["id"],data["text"])
     data["is_violent"]= is_violent if is_violent else "0"
     print(dump_to_json(data))
