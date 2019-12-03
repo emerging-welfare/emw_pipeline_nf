@@ -5,6 +5,7 @@ import re
 from utils import write_to_json
 from utils import dump_to_json
 from utils import read_from_json
+from utils import change_extension
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -25,27 +26,30 @@ if __name__ == "__main__":
     args = get_args()
     # jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
     #files=args.input_files.strip("[ ]").split(",") # when doc classifier component is first
-    files = eval(args.input_files) #untagge it when doc classifier component its not the first 
+    files = eval(args.input_files) #when doc classifier component its not the first 
     jsons = []
     for filename in files:
         filename=filename.strip("' ")
-        jsons.append(read_from_json(args.out_dir+filename)) # when doc classifier component its not the first 200 finish
+        read_file=read_from_json(args.out_dir+filename)
+        if read_file=="":continue
+        jsons.append(read_file) # when doc classifier component its not first
         #jsons.append(read_from_json(filename)) #when doc classifier component is first
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
     output_data = []
     for i,data in enumerate(jsons):
+######## those are only for 20_K_Sample expirement 
+#        if "token_labels" in data:
+#                del data["token_labels"]
+#        if "tokens" in data:
+#                del data["tokens"]
+########
         out = int(rtext["outputs"][i])
         data["doc_label"] = out
         data["length"] = len(data["text"])
-        data["sentences"] = event_sentences.pop()
-        output_data.append(dump_to_json(data))
-
-    if len(output_data) > 0:
-        str_out = str(output_data)
-#attemp to solve issue#11
-#        while len(str_out) > 65533:
-#            output_data.pop()
-#            str_out = str(output_data)
-#
-        print(str(output_data))
+        out_sentences= event_sentences.pop(0)
+        data["sentences"]= out_sentences if len(out_sentences)>0 else []
+        #output_data.append(dump_to_json(data))
+        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
+        output_data.append(args.out_dir+change_extension(data["id"],".json"))
+    print(str(output_data))
