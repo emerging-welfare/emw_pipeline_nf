@@ -116,7 +116,6 @@ def predict(texts):
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-
         parser.add_argument('texts', required=False, type=str, action='append', default=[])
         parser.add_argument('outputs', required=False)
         parser.add_argument('event_sentences', required=False)
@@ -125,8 +124,7 @@ class queryList(Resource):
         args["outputs"] = predict(args['texts'])
         args["event_sentences"] = list()
         for i,output in enumerate(args["outputs"]):
-           if output == 1:
-                   args["event_sentences"].append(sent_tokenize(args['texts'][i]))
+           args["event_sentences"].append(sent_tokenize(args['texts'][i]))
 
         return args, 201
 

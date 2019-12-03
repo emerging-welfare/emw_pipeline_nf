@@ -25,11 +25,11 @@ if __name__ == "__main__":
     args = get_args()
     # jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
     #files=args.input_files.strip("[ ]").split(",") # when doc classifier component is first
-    files = eval(args.input_files) #untagge it when doc classifier component its not the first 
+    files = eval(args.input_files) #when doc classifier component its not the first 
     jsons = []
     for filename in files:
         filename=filename.strip("' ")
-        jsons.append(read_from_json(args.out_dir+filename)) # when doc classifier component its not the first 200 finish
+        jsons.append(read_from_json(args.out_dir+filename)) #when doc classifier component its not first
         #jsons.append(read_from_json(filename)) #when doc classifier component is first
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
@@ -41,14 +41,9 @@ if __name__ == "__main__":
         if out == 0:
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)     
         if out == 1:
-            data["sentences"] = event_sentences.pop()
-            output_data.append(dump_to_json(data))
-
-    if len(output_data) > 0:
-        str_out = str(output_data)
-#attemp to solve issue#11
-#        while len(str_out) > 65533:
-#            output_data.pop()
-#            str_out = str(output_data)
-#
-        print(str(output_data))
+            data["sentences"] = event_sentences.pop(0)
+#            output_data.append(dump_to_json(data))
+            write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
+            output_data.append(args.out_dir+change_extension(data["id"],".json"))
+    str_out = str(output_data)
+    print(str(output_data))
