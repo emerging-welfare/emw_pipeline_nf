@@ -40,6 +40,8 @@ if __name__ == "__main__":
     is_violent=request_violent(data["id"],data["text"])
     data["is_violent"]= is_violent if is_violent else "0"
     if 1 in data["sent_labels"]:
-        print(dump_to_json(data))
+        # print(dump_to_json(data))
+        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
+        print(args.out_dir+change_extension(data["id"],".json"))
     else:
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
