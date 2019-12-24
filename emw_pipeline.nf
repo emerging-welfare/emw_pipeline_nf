@@ -1,13 +1,14 @@
 #!/usr/bin/env nextflow
 
-params.input_dir = "$baseDir/../timesofindia_500"
-params.input = "$params.input_dir/*cms"
-params.outdir = "$baseDir/jsons/"
-params.source_lang = "English"
-params.source = 3
-params.doc_batchsize = 48
-params.token_batchsize = 8
-params.prefix = "$baseDir"
+/println(params.input_dir)
+println(params.input)
+println(params.outdir)
+println(params.source_lang)
+println(params.source)
+println(params.doc_batchsize)
+println(params.token_batchsize)
+println(params.prefix)
+
 
 html_channel = Channel.fromPath(params.input)
 println(params.input)
