@@ -23,8 +23,7 @@ def request(sentences):
 
 if __name__ == "__main__":
     args = get_args()
-    jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
-
+    jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data).replace("\'",""))
     rtext = request(str([data["sentences"] for data in jsons]))
     all_tokens = rtext["tokens"]
     all_token_labels = rtext["output"]

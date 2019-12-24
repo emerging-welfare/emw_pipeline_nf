@@ -1,6 +1,5 @@
 #!/usr/bin/env nextflow
-
-/println(params.input_dir)
+println(params.input_dir)
 println(params.input)
 println(params.outdir)
 println(params.source_lang)
