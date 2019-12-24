@@ -35,6 +35,12 @@ if __name__ == "__main__":
     event_sentences = rtext["event_sentences"]
     output_data = []
     for i,data in enumerate(jsons):
+######## those are only for 20_K_Sample expirement 
+        if "token_labels" in data:
+                del data["token_labels"]
+        if "tokens" in data:
+                del data["tokens"]
+########
         out = int(rtext["outputs"][i])
         data["doc_label"] = out
         data["length"] = len(data["text"])
@@ -42,8 +48,6 @@ if __name__ == "__main__":
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)     
         if out == 1:
             data["sentences"] = event_sentences.pop(0)
-#            output_data.append(dump_to_json(data))
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
             output_data.append(args.out_dir+change_extension(data["id"],".json"))
-    str_out = str(output_data)
     print(str(output_data))

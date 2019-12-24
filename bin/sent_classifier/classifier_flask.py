@@ -2,9 +2,9 @@ import os
 import numpy
 from pathlib import Path
 import torch
+import argparse
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
-
 # Import the framework
 from flask import Flask, g
 from flask_restful import Resource, Api, reqparse
@@ -89,6 +89,19 @@ def convert_text_to_features(text, label_list, max_seq_length, tokenizer):
 
     return input_ids, input_mask, segment_ids
 
+def get_args():
+    '''
+    This function parses and return arguments passed in
+    '''
+    parser = argparse.ArgumentParser(prog='classifier_flask.py',
+                                     description='Flask Server for Sentence Classification')
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0-5, where 0,1,2,3,4 gpus will be allocated.\n or just type the number of required gpu, i.e 6 ",default=6)
+    args = parser.parse_args()
+
+    return(args)
+
+
+
 def predict(sentences):
     all_labels = []
     batches = prepare_data(sentences, label_list, max_seq_length, tokenizer)
@@ -128,10 +141,10 @@ bert_model = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
 model_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
 
-num_labels = len(label_list)
-# device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-device = torch.device("cuda:6")
+## device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
+num_labels = len(label_list)
+#device = torch.device("cuda:6")
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 model = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels)
 if torch.cuda.is_available():
@@ -139,7 +152,14 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
-# model = torch.nn.DataParallel(model, device=device, dim=0)
+args=get_args()
+gpu_range=args.gpu_number.split("-")
+if len(gpu_range)==1:
+    device=torch.device("cuda:{0}".format(int(gpu_range[0])))
+elif len(gpu_range)==2:
+             device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
+             device=torch.device("cuda:{0}".format(int(device_ids[0])))
+             model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
 model.to(device)
 
 api.add_resource(queryList, '/queries')

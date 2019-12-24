@@ -1,13 +1,13 @@
 #!/usr/bin/env nextflow
+println(params.input_dir)
+println(params.input)
+println(params.outdir)
+println(params.source_lang)
+println(params.source)
+println(params.doc_batchsize)
+println(params.token_batchsize)
+println(params.prefix)
 
-params.input_dir = "$baseDir/../timesofindia_500"
-params.input = "$params.input_dir/*cms"
-params.outdir = "$baseDir/jsons/"
-params.source_lang = "English"
-params.source = 3
-params.doc_batchsize = 48
-params.token_batchsize = 8
-params.prefix = "$baseDir"
 
 html_channel = Channel.fromPath(params.input)
 println(params.input)
@@ -107,7 +107,7 @@ process sent_classifier {
         stdout(out_json) into sent_out
     script:
         """
-	python3 $params.prefix/bin/sent_classifier.py --data '$in_json'
+	python3 $params.prefix/bin/sent_classifier.py --data '$in_json' --out_dir $params.outdir
 	"""
 }
 

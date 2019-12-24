@@ -6,7 +6,7 @@ import torch
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 from sklearn.externals import joblib
-
+import argparse
 # Import the framework
 from flask import Flask, g
 from flask_restful import Resource, Api, reqparse
@@ -72,6 +72,18 @@ def convert_text_to_features(text, label_list, max_seq_length, tokenizer):
     assert len(segment_ids) == max_seq_length
 
     return input_ids, input_mask, segment_ids
+def get_args():
+    '''
+    This function parses and return arguments passed in
+    '''
+    parser = argparse.ArgumentParser(prog='classifier_batch_flask.py',
+                                     description='Flask Server for Document Classification')
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0-5, where 0,1,2,3,4 gpus will be allocated.\n or just type the number of required gpu, i.e 6 ",default="0-6")
+    args = parser.parse_args()
+
+    return(args)
+
+
 
 def predict(texts):
 
@@ -138,7 +150,6 @@ model_path = HOME+"/.pytorch_pretrained_bert/doc_model.pt"
 
 num_labels = len(label_list)
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = torch.device("cuda:0")
 # svm_model = joblib.load(svm_model)
 
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
@@ -148,7 +159,15 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
-model = torch.nn.DataParallel(model, device_ids=[0,1,2,3,4,5], output_device=device, dim=0)
+#device = torch.device("cuda:0")
+args=get_args()
+gpu_range=args.gpu_number.split("-")
+if len(gpu_range)==1:
+    device=torch.device("cuda:{0}".format(int(gpu_range[0])))
+elif len(gpu_range)==2:
+             device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
+             device=torch.device("cuda:{0}".format(int(device_ids[0])))
+             model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
 model.to(device)
 
 api.add_resource(queryList, '/queries')
