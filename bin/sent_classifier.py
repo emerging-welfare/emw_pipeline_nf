@@ -5,6 +5,7 @@ from utils import dump_to_json
 #from utils import load_from_json
 from utils import read_from_json
 from utils import change_extension
+from utils import write_to_json
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -12,6 +13,7 @@ def get_args():
     parser = argparse.ArgumentParser(prog='sent_classifier.py',
                                      description='Sentence FLASK BERT Classififer Application ')
     parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--out_dir', help="output folder")
     args = parser.parse_args()
 
     return(args)
@@ -37,4 +39,7 @@ if __name__ == "__main__":
         data["sent_labels"] = [int(i) for i in rtext["output"]]
     is_violent=request_violent(data["id"],data["text"])
     data["is_violent"]= is_violent if is_violent else "0"
-    print(dump_to_json(data))
+    if 1 in data["sent_labels"]:
+        print(dump_to_json(data))
+    else:
+        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
