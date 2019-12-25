@@ -38,7 +38,11 @@ if __name__ == "__main__":
         data["sent_labels"]=[]
     else:
         rtext = request(data["sentences"])
-        data["sent_labels"] = [int(i) for i in rtext["output"]]
+        data["sent_labels"] = [int(i) for i in rtext["output_protest"]]
+        data["Trigger_Semantic_label"]=rtext["output_sem"]
+        data["participant_semantic"]=rtext["partic_sem"]
+        data["organizer_semantic"]=rtext["org_sem"]
+    
     is_violent=request_violent(data["id"],data["text"])
     data["is_violent"]= is_violent if is_violent else "0"
     write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 

@@ -5,10 +5,11 @@ mv nextflow ./bin
 nextflow
 
 #python requirements
-pip2 install -r requirements2.txt && pip3 install -r requirements.txt
+#pip2 install -r requirements2.txt && 
+pip3 install -r requirements.txt
 
 #Extract & Doc Preprocess Dependencies
-git clone https://github.com/OsmanMutlu/python-boilerpipe.git && cd python-boilerpipe && python2 setup.py install && cd .. && rm -rf python-boilerpipe
+#git clone https://github.com/OsmanMutlu/python-boilerpipe.git && cd python-boilerpipe && python2 setup.py install && cd .. && rm -rf python-boilerpipe
 
 #BERT
 cd .. && git clone https://github.com/OsmanMutlu/pytorch-pretrained-BERT.git && cd pytorch-pretrained-BERT && pip3 install .  && cd ..
@@ -20,5 +21,12 @@ python3 -c "import nltk;nltk.download('popular', halt_on_error=False)"
 #is_violent 
 mkdir bin/violent_classifier && cd bin/violent_classifier && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
 
-# Create default output folder
-mkdir jsons
+#Trigger Semantic Categorization
+cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/ylayuknupfj1cra/sem_cats_128.pt?dl=1" && mv sem_cats_128.pt\?dl=1 sem_cats_128.pt
+
+#Participant Semantic Categorization
+cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/frgv24lftlp3lwk/part_sem_cats_128.pt?dl=1" && mv part_sem_cats_128.pt\?dl=1 part_sem_cats_128.pt
+
+
+#Organizer Semantic Categorization
+ cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/qft9b81fnkp5tsk/org_sem_cats_128.pt?dl=1" && mv org_sem_cats_128.pt\?dl=1 org_sem_cats_128.pt 

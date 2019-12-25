@@ -156,19 +156,21 @@ tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 model = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels)
 if torch.cuda.is_available():
     model.load_state_dict(torch.load(model_path))
+    args=get_args()
+    gpu_range=args.gpu_number.split("-")
+    if len(gpu_range)==1:
+        device=torch.device("cuda:{0}".format(int(gpu_range[0])))
+    elif len(gpu_range)==2:
+                device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
+                device=torch.device("cuda:{0}".format(int(device_ids[0])))
+                model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
+
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
+    device=torch.device("cpu")
 
-#device = torch.device("cuda:0")
-args=get_args()
-gpu_range=args.gpu_number.split("-")
-if len(gpu_range)==1:
-    device=torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range)==2:
-             device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
-             device=torch.device("cuda:{0}".format(int(device_ids[0])))
-             model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
 model.to(device)
+#device = torch.device("cuda:0")
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=5000, debug=True)
