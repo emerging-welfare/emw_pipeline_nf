@@ -203,8 +203,6 @@ if torch.cuda.is_available():
 else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
-
-
 args=get_args()
 gpu_range=args.gpu_number.split("-")
 if len(gpu_range)==1:

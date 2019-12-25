@@ -102,15 +102,14 @@ def get_args():
 
 
 
-def predict(sentences):
-    all_labels = []
+def predict(sentences,label_list,model,device):# protest classifier output list
+    all_labels = [] 
     batches = prepare_data(sentences, label_list, max_seq_length, tokenizer)
     for batch in batches:
         input_ids, input_mask, segment_ids = batch
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)
-
         logits = model(input_ids, segment_ids, input_mask)
         logits = logits.detach().cpu().numpy()
 
@@ -126,41 +125,76 @@ class queryList(Resource):
         parser.add_argument('sentences', required=False, type=str, action='append', default=[])
         parser.add_argument('output', required=False)
         args = parser.parse_args()
-
-        output = predict(args['sentences'])
-        args["output"] = output
-
+        output_protest = predict(args['sentences'],label_list_protest,model_protest,device)
+        output_sem = predict(args['sentences'],trigger_sem_label_list,model_sem,device_Trigger)
+        output_partic_sem = predict(args['sentences'],partic_sem_label_list,model_partic_sem,device_Partic)
+        output_org_sem = predict(args['sentences'],org_sem_label_list,model_org_sem,device_Org)
+        args["output_protest"] = output_protest
+        args["output_sem"] = trigger_sem_label_list[output_sem].tolist()
+        args["partic_sem"]=partic_sem_label_list[output_partic_sem].tolist()
+        args["org_sem"]=org_sem_label_list[output_org_sem].tolist()
         return args, 201
 
-
-label_list = ["0", "1"]
+#gloabl configuration
 max_seq_length = 128
 batchsize = 32
 HOME=os.getenv("HOME")
 bert_model = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-model_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
-
-## device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-
-num_labels = len(label_list)
-#device = torch.device("cuda:6")
 tokenizer = BertTokenizer.from_pretrained(bert_vocab)
-model = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels)
-if torch.cuda.is_available():
-    model.load_state_dict(torch.load(model_path))
-else:
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
+# device_cpu = torch.device("cpu")
 
-args=get_args()
-gpu_range=args.gpu_number.split("-")
-if len(gpu_range)==1:
-    device=torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range)==2:
-             device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
-             device=torch.device("cuda:{0}".format(int(device_ids[0])))
-             model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
-model.to(device)
+
+#### Trigger Semantic Categorization ####
+trigger_sem_label_list=numpy.array(['arm_mil', 'demonst', 'ind_act', 'group_clash'])
+trigger_sem_model=HOME+"/.pytorch_pretrained_bert/sem_cats_128.pt"
+num_labels_sem=len(trigger_sem_label_list)
+model_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem)
+device_Trigger=torch.device("cuda:3")
+#model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
+model_sem.to(device_Trigger)
+######
+
+### Participant Semantic Categorization ### 
+partic_sem_model_path =HOME+"/.pytorch_pretrained_bert/part_sem_cats_128.pt"
+partic_sem_label_list=numpy.array(['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 'siyasetçi', 'profesyonel', 'işçi', 'esnaf/küçük üretici', "No"])
+num_labels_sem_part=len(partic_sem_label_list)
+model_partic_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem_part)
+device_Partic=torch.device("cuda:4")
+# model_partic_sem.load_state_dict(torch.load(partic_sem_model_path, map_location='cpu'))
+model_partic_sem.to(device_Partic)
+#####
+
+### Organizer Semantic Categorization ### 
+org_sem_model_path =HOME+"/.pytorch_pretrained_bert/org_sem_cats_128.pt"
+org_sem_label_list=numpy.array(['Militant_Organization', 'Political_Party', 'Chambers_of_Professionals', 'Labor_Union', 'Grassroots_Organization', "No"])
+num_labels_org_sem=len(org_sem_label_list)
+model_org_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_org_sem)
+# model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
+device_Org=torch.device("cuda:5")
+model_org_sem.to(device_Org)
+#####
+
+### protest classifier #### 
+model_path_protest_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
+label_list_protest = ["0", "1"]
+num_labels_protest = len(label_list_protest)
+model_protest = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_protest)
+if torch.cuda.is_available():
+    model_protest.load_state_dict(torch.load(model_path_protest_path))
+    args=get_args()
+    gpu_range=args.gpu_number.split("-")
+    if len(gpu_range)==1:
+        device=torch.device("cuda:{0}".format(int(gpu_range[0])))
+    elif len(gpu_range)==2:
+                device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
+                device=torch.device("cuda:{0}".format(int(device_ids[0])))
+                model_protest = torch.nn.DataParallel(model_protest,device_ids=device_ids,output_device=device, dim=0)
+    model_protest.to(device)
+else:
+    model_protest.load_state_dict(torch.load(model_path_protest_path, map_location='cpu'))
+    model_protest.to(device_cpu)
+#####
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4999, debug=True)
