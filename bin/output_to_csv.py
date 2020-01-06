@@ -5,6 +5,7 @@ from glob import iglob,glob
 import argparse
 import tqdm
 import csv
+from coreference_model import coreference_model as cm
 
 def get_args():
     '''
@@ -60,6 +61,7 @@ def add_tag(obj, span, label, tokens):
 
 
 def main():
+    list_of_span=[]
     args=get_args()
     files=glob(args.input_folder+"*json")
     if len(files)==0:
@@ -76,6 +78,8 @@ def main():
             #wr.write(args.csv_spliter.join(header_csv)+"\n") #header
         for filename in tqdm.tqdm(files):
             try:
+                    corerefence_sentences=[]
+                    output_dicts=[]
                     with open(filename, "r", encoding="utf-8",errors='surrogatepass') as f:
                         data = json.loads(f.read())
                     
@@ -98,7 +102,7 @@ def main():
                         if args.filter_unprotested_sentence:
                             if sent_label == 0:
                                 continue
-        
+                        corerefence_sentences.append({"id":len(output_dicts),"text":data["sentences"][i].replace("\n"," ")})
                         prev_label = "O"
                         curr_span = []
                         obj = ToHoldStuff()
@@ -126,54 +130,66 @@ def main():
                                         obj = add_tag(obj, curr_span, prev_label, tokens)
                                         curr_span = [j]
                                 prev_label = label[2:]
-                        # if args.output_type=="csv":
-                        #         wr.write(args.csv_spliter.join([data["id"]
-                        #         ,data["text"].replace("\n"," ").replace("\"","\\\"").replace("\'","\\\'")
-                        #         ,str(data["doc_label"])
-                        #         ,str(data["is_violent"])
-                        #         ,str(i)
-                        #         ,str(data["sentences"][i]).replace("\n"," ").replace("\"","\\\"").replace("\'","\\\'")
-                        #         ,str(data["sent_labels"][i])
-                        #         ,data[args.date_key].strip("\n")
-                        #         ," & ".join(obj.trigger_list).strip("\n")
-                        #         ," & ".join(obj.place_list).strip("\n")
-                        #         ," & ".join(obj.time_list).strip("\n")
-                        #         ," & ".join(obj.participant_list).strip("\n")
-                        #         ," & ".join(obj.organizer_list).strip("\n")
-                        #         ," & ".join(obj.target_list).strip("\n")
-                        #         ," & ".join(obj.facility_list).strip("\n")
-                        #         ,data["Trigger_Semantic_label"][i].strip("\n")
-                        #         ,data["participant_semantic"][i].strip("\n")
-                        #         ,data["organizer_semantic"][i].strip("\n")])+"\n")
-                        # else:
-                        output_dict={"url":data["id"]
+
+
+                        output_dicts.append({"url":data["id"]
                         ,"doc_text":"" if doc_text_wrote else data["text"].replace("\n"," ")
+                        ,"publish_date":data[args.date_key].strip("\n")
                         ,"doc_label":str(data["doc_label"])
                         ,"doc_is_violent":str(data["is_violent"])
                         ,"sentence_number":str(i)
                         ,"sentence_text":str(data["sentences"][i]).replace("\n"," ")
                         ,"sentence_label":str(data["sent_labels"][i])
-                        ,"publish_date":data[args.date_key].strip("\n")
-                        ,"triggers":" & ".join(obj.trigger_list)
-                        ,"places":" & ".join(obj.place_list)
-                        ,"times":" ".join(obj.time_list)
-                        ,"participants":" ".join(obj.participant_list)
-                        ,"organizers":" ".join(obj.organizer_list)
-                        , "targets":" ".join(obj.target_list)
-                        ,"facilities":" ".join(obj.facility_list)
+                        ,"triggers":" & ".join(obj.trigger_list)             if len(obj.trigger_list) > 0 else ""
+                        ,"places":" & ".join(obj.place_list)                 if len(obj.place_list) > 0 else ""
+                        ,"times":" ".join(obj.time_list)                     if len(obj.time_list) > 0 else ""
+                        ,"participants":" ".join(obj.participant_list)       if len(obj.participant_list) > 0 else ""
+                        ,"organizers":" ".join(obj.organizer_list)           if len(obj.organizer_list) > 0 else ""
+                        , "targets":" ".join(obj.target_list)                if len(obj.target_list) > 0 else ""
+                        ,"facilities":" ".join(obj.facility_list)            if len(obj.facility_list) > 0 else ""
                         ,"trigger_semantic":data["Trigger_Semantic_label"][i]
                         ,"participant_semantic":data["participant_semantic"][i]
-                        ,"organizer_semantic":data["organizer_semantic"][i]}
+                        ,"organizer_semantic":data["organizer_semantic"][i]})
 
                         doc_text_wrote=True
-                        if args.output_type=="csv":
-                            writer.writerow(output_dict)
-                        else:
-                            wr.write(json.dumps(output_dict)+"\n")
+
+                    pred_coref=cm.predict(corerefence_sentences)
+                    list_of_span=[] 
+                    for x in pred_coref: 
+                        if len(x)>1: 
+                            list_of_span.append([]) 
+                            [list_of_span[-1].append(w["id"]) for w in x] 
+                            
+                    for span in list_of_span: 
+                        temp=output_dicts[span[0]]
+                        output_dicts[span[0]]=None
+                        temp["sentence_number"]=str(span)
+                        temp["sentence_label"]=[temp["sentence_label"]]
+                        for i in range(len(span)-1):
+                            temp2=output_dicts[span[i+1]]
+                            output_dicts[span[i+1]]=None
+                            temp["sentence_label"].append(temp2['sentence_label'])
+                            for x in ["sentence_text","triggers","places","times","participants","organizers","targets","facilities","trigger_semantic","participant_semantic","organizer_semantic"]:
+                                # if temp[x] and temp2[x]:
+                                #     temp[x]=" [NS] ".join([temp[x],temp2[x]])
+                                # elif temp2[x]:
+                                #     temp[x]=temp2[x]
+                                temp[x]=" [NS] ".join([temp[x],temp2[x]])
+                        output_dicts.append(temp)
+
+
+
+                    if args.output_type=="csv":
+                        [writer.writerow(output_dict) for output_dict in output_dicts if output_dict] #change it to wrtie list 
+                    else:
+                        [wr.write(json.dumps(output_dict)+"\n") for output_dict in output_dicts if output_dict]#change it to wrtie list 
+
+                    
+                
             except Exception as e :
 
                 print(e.with_traceback)
-                print(data["id"])
+                print(data["id"],"\t",list_of_span,len(output_dicts),len(corerefence_sentences))
                 raise RuntimeError
 
 if __name__ == '__main__':
