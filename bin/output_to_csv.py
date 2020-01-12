@@ -152,14 +152,34 @@ def main():
                         ,"organizer_semantic":data["organizer_semantic"][i]})
 
                         doc_text_wrote=True
-
+                    ###coreference model 
+                    
+                    #TODO:test the filter mode
+                    #if filter was not flagged, default filter is either sentence is positve either contains trigger value
+                    if not args.filter_unprotested_sentence or not args.filter_unprotested_doc:
+                        assert(len(output_dicts)==len(corerefence_sentences))
+                        for i,x in enumerate(output_dicts):
+                            if not x["triggers"] or x["sentence_label"]=='1':
+                                continue
+                            corerefence_sentences[i]=None
+                        corerefence_sentences= [x for x in corerefence_sentences if x]
+                    #predict all the sentences in corerefence_sentences
                     pred_coref=cm.predict(corerefence_sentences)
+
+                    #extract the groups ids
                     list_of_span=[] 
                     for x in pred_coref: 
                         if len(x)>1: 
                             list_of_span.append([]) 
                             [list_of_span[-1].append(w["id"]) for w in x] 
-                            
+                    
+                    #merge operation 
+                    #TODO check if output_dicts[span[i+1]] and output_dicts[span[i]] give the correct answers. 
+                    #try it with
+                    #temp_i=[dic_i for dic_i,diz in enumerate(t_dict) if diz and diz["id"]==span[0]][0]
+                    #temp=t_dict[temp_i]
+                    #output_dicts.pop(temp_i)
+
                     for span in list_of_span: 
                         temp=output_dicts[span[0]]
                         output_dicts[span[0]]=None
