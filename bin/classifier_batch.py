@@ -6,6 +6,7 @@ from utils import write_to_json
 from utils import dump_to_json
 from utils import read_from_json
 from utils import change_extension
+from datetime import datetime
 
 def get_args():
     '''
@@ -48,6 +49,9 @@ if __name__ == "__main__":
         out = int(rtext["outputs"][i])
         data["doc_label"] = out
         data["length"] = len(data["text"])
+        keys=data.keys()
+        if "id" not in keys and 'url' in keys:
+            data["id"]=data["url"].replace(":","_").replace("/","_")+ datetime.now().strftime("%f") 
         if out == 0:
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)     
         if out == 1:
