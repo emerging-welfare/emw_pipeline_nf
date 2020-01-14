@@ -61,12 +61,13 @@ def add_tag(obj, span, label, tokens):
 
 
 def main():
+    nnn=0
     list_of_span=[]
     args=get_args()
     files=glob(args.input_folder+"*json")
     if len(files)==0:
         raise RuntimeError("input folder is empty")
-    file_log = tqdm.tqdm(total=0, position=1, bar_format='{desc}')
+    #file_log = tqdm.tqdm(total=0, position=1, bar_format='{desc}')
     header_csv=["url","doc_text","doc_label","doc_is_violent","sentence_number","sentence_text","sentence_label","publish_date","triggers", "places","times","participants","organizers","targets","facilities","trigger_semantic","participant_semantic","organizer_semantic"]
     output_file_name=args.o+".csv" if args.output_type=="csv" else args.o+".json"
 
@@ -83,7 +84,7 @@ def main():
                     with open(filename, "r", encoding="utf-8",errors='surrogatepass') as f:
                         data = json.loads(f.read())
                     
-                    file_log.set_description_str(f'Current file: {filename}')
+                    #file_log.set_description_str(f'Current file: {filename}')
                     
                     doc_text_wrote=False
                     if "doc_label" not in data.keys():
@@ -91,7 +92,10 @@ def main():
                     if args.filter_unprotested_doc:
                         if data["doc_label"] == 0:
                             continue 
-
+                    
+                    if data["tokens"]==[""]:
+                        print(filename,"has empty tokens array !!!")
+                        continue
                     data = postprocess(data)
                     if not data:
                         print("Something wrong with postprocess")
@@ -102,7 +106,8 @@ def main():
                         if args.filter_unprotested_sentence:
                             if sent_label == 0:
                                 continue
-                        corerefence_sentences.append({"id":len(output_dicts),"text":data["sentences"][i].replace("\n"," ")})
+                        
+                        # corerefence_sentences.append({"id":len(output_dicts),"text":data["sentences"][i].replace("\n"," ")})
                         prev_label = "O"
                         curr_span = []
                         obj = ToHoldStuff()
@@ -131,7 +136,10 @@ def main():
                                         curr_span = [j]
                                 prev_label = label[2:]
 
-
+                        if data["sent_labels"][i]==1 or obj.trigger_list:
+                            corerefence_sentences.append({"id":len(output_dicts),"text":data["sentences"][i].replace("\n"," ")})
+                        else:
+                            nnn=nnn+1
                         output_dicts.append({"url":data["id"]
                         ,"doc_text":"" if doc_text_wrote else data["text"].replace("\n"," ")
                         ,"publish_date":data[args.date_key].strip("\n")
@@ -150,20 +158,23 @@ def main():
                         ,"trigger_semantic":data["Trigger_Semantic_label"][i]
                         ,"participant_semantic":data["participant_semantic"][i]
                         ,"organizer_semantic":data["organizer_semantic"][i]})
+                        
 
                         doc_text_wrote=True
                     ###coreference model 
                     
                     #TODO:test the filter mode
                     #if filter was not flagged, default filter is either sentence is positve either contains trigger value
-                    if not args.filter_unprotested_sentence or not args.filter_unprotested_doc:
-                        assert(len(output_dicts)==len(corerefence_sentences))
-                        for i,x in enumerate(output_dicts):
-                            if not x["triggers"] or x["sentence_label"]=='1':
-                                continue
-                            corerefence_sentences[i]=None
-                        corerefence_sentences= [x for x in corerefence_sentences if x]
+                    # if not args.filter_unprotested_sentence or not args.filter_unprotested_doc:
+                    #     assert(len(output_dicts)==len(corerefence_sentences))
+                    #     for i,x in enumerate(output_dicts):
+                    #         if not x["triggers"] or x["sentence_label"]=='1':
+                    #             continue
+                    #         corerefence_sentences[i]=None
+                    #     corerefence_sentences= [x for x in corerefence_sentences if x]
+
                     #predict all the sentences in corerefence_sentences
+
                     pred_coref=cm.predict(corerefence_sentences)
 
                     #extract the groups ids
@@ -211,6 +222,14 @@ def main():
                 print(e.with_traceback)
                 print(data["id"],"\t",list_of_span,len(output_dicts),len(corerefence_sentences))
                 raise RuntimeError
-
+    print(nnn)
 if __name__ == '__main__':
     main()
+
+#TODO print a table of variables 
+#number of positve doc 
+#number of postive sent 
+#each label doluluk orani 
+#how many file has empty token list !! which is very strange 
+#total lines number
+ 
