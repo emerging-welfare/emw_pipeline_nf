@@ -6,6 +6,8 @@ from utils import write_to_json
 from utils import dump_to_json
 from utils import read_from_json
 from utils import change_extension
+from datetime import datetime
+
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -49,6 +51,10 @@ if __name__ == "__main__":
         data["length"] = len(data["text"])
         out_sentences= event_sentences.pop(0)
         data["sentences"]= out_sentences if len(out_sentences)>0 else []
+        
+        keys=data.keys()
+        if "id" not in keys and 'url' in keys:
+            data["id"]=data["url"].replace(":","_").replace("/","_")+ datetime.now().strftime("%f") 
         #output_data.append(dump_to_json(data))
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
         output_data.append(args.out_dir+change_extension(data["id"],".json"))
