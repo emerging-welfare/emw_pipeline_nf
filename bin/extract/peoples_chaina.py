@@ -31,7 +31,6 @@ def main(args):
         if data["title"]:
             data["time"]=doc.xpath('//*//span//text()')[0] if doc.xpath('//*//span//text()') else ""
             data["text"]=" ".join([x.strip("\n \t") for x in doc.xpath('//*//p//text()')]).strip()
-            data = dump_to_json(data)
             return data
 
     data["time"]=" ".join(doc.xpath('//h3//*[@id="p_publishtime"]/text()'))
@@ -58,6 +57,5 @@ if __name__ == "__main__":
     # print(data)
     if len(data["id"])>200:
         data["id"]=data["id"][:200] 
-    print(args.out_dir)
     write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
     print('"' + change_extension(data["id"], ex=".json") + '"')
