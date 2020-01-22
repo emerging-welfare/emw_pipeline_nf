@@ -34,15 +34,15 @@ def request(texts):
 if __name__ == "__main__":
     args = get_args()
     # jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data))
-    files=args.input_files.strip("[ ]").split(",") # when doc classifier component is first
-    #files = eval(args.input_files) #when doc classifier component its not the first 
+    #files=args.input_files.strip("[ ]").split(",") # when doc classifier component is first
+    files = eval(args.input_files) #when doc classifier component its not the first 
     jsons = []
     for filename in files:
         filename=filename.strip("' ")
-        #read_file=read_from_json(args.out_dir+filename) ##
-        #if read_file=="":continue ##
-        #jsons.append(read_file) ## when doc classifier component its not first
-        jsons.append(read_from_json(filename)) #when doc classifier component is first
+        read_file=read_from_json(args.out_dir+filename) ##
+        if read_file=="":continue ##
+        jsons.append(read_file) ## when doc classifier component its not first
+        #jsons.append(read_from_json(filename)) #when doc classifier component is first
     rtext = request([data["text"] for data in jsons])
     event_sentences = rtext["event_sentences"]
     output_data = []
