@@ -36,7 +36,7 @@ if __name__ == "__main__":
         data["sent_labels"]=[]
     else:
         rtext = request(data["sentences"])
-        data["sent_labels"] = [int(i) for i in rtext["output"]]
+        data["sent_labels"] = [int(i) for i in rtext["output_protest"]]
         data["Trigger_Semantic_label"]=rtext["output_sem"]
         data["participant_semantic"]=rtext["partic_sem"]
         data["organizer_semantic"]=rtext["org_sem"]
