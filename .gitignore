@@ -1,3 +1,4 @@
+*.pickle
 *.db.*
 __pycache__/
 .nextflow*
