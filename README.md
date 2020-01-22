@@ -20,7 +20,14 @@ where the output of each component is as follows,
 [An example output](output_example.md) can be found at the end of the page. 
 
 This Repo contains two branchs ,
-# [all_components](https://github.com/emerging-welfare/emw_pipeline_nf/tree/all_components)
+# Pipeline Configuartion. 
+* [all_components](https://github.com/emerging-welfare/emw_pipeline_nf/tree/all_components)
+
+To clone all_components branch
+```
+git checkout -b all_components  origin/all_components
+git checkout all_components
+```
 
 This brach will run the pipeline as it illustrated in the flowchart. Where no filtering will be applied. 
 
@@ -29,8 +36,14 @@ Flowchart,
 ![Test](https://media.giphy.com/media/lrtUmgopBzTYIB3tA8/giphy.gif)
 
 
-# [hpc](https://github.com/emerging-welfare/emw_pipeline_nf/tree/hpc) (to be renamed as cascaded_version)
+* [cascaded](https://github.com/emerging-welfare/emw_pipeline_nf/tree/cascaded) (to be renamed as cascaded)
 This brach will run the pipeline as it illustrated in the flowchart. Where filtering will be applied and only postive sentences of a postive document will be passed.
+
+To clone cascaded branch
+```
+git checkout -b cascaded  origin/cascaded
+git checkout cascaded
+```
 
 ![Test](https://media.giphy.com/media/gIOFwSETRmtKI29yIj/giphy.gif)
 
