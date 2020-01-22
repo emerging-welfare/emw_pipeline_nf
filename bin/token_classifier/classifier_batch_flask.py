@@ -84,7 +84,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier_flask.py',
                                      description='Flask Server for Token  Classification')
-    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0-5, where 0,1,2,3,4 gpus will be allocated.\n or just type the number of required gpu, i.e 7 ",default=7)
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 7 ",default=7)
     args = parser.parse_args()
 
     return(args)
@@ -204,11 +204,11 @@ else:
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
 args=get_args()
-gpu_range=args.gpu_number.split("-")
+gpu_range=args.gpu_number.split(",")
 if len(gpu_range)==1:
     device=torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range)==2:
-             device_ids= list(range(int(gpu_range[0]),int(gpu_range[1])))
+elif len(gpu_range)>=2:
+             device_ids= [int(x) for x in gpu_range]
              device=torch.device("cuda:{0}".format(int(device_ids[0])))
              model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
 model.to(device)
