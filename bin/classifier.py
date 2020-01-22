@@ -1,3 +1,8 @@
+#Abdurrahman Beyaz. abdurrahmanbeyaza@gmail.com
+"""
+This class is an individual version of classifier_batch
+"""
+
 import argparse
 import json
 import requests

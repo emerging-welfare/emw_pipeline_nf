@@ -1,3 +1,8 @@
+#Abdurrahman Beyaz. abdurrahmanbeyaza@gmail.com
+"""
+This scrpit aims to generate a detailed version of pipeline output either in JSON or CSV format. where it's read the JSON files by give the path to input_folder
+"""
+
 import json
 from utils import postprocess
 from utils import filename_to_url
@@ -61,7 +66,7 @@ def add_tag(obj, span, label, tokens):
 
 
 def main():
-    nnn=0
+    count_1=0 # number of sentences that do not contains trigger token and negative predicted.
     list_of_span=[]
     args=get_args()
     files=glob(args.input_folder+"*json")
@@ -139,7 +144,7 @@ def main():
                         if data["sent_labels"][i]==1 or obj.trigger_list:
                             corerefence_sentences.append({"id":len(output_dicts),"text":data["sentences"][i].replace("\n"," ")})
                         else:
-                            nnn=nnn+1
+                            count_1=count_1+1
                         output_dicts.append({"url":data["id"]
                         ,"doc_text":"" if doc_text_wrote else data["text"].replace("\n"," ")
                         ,"publish_date":data[args.date_key].strip("\n")
@@ -160,23 +165,12 @@ def main():
                         ,"organizer_semantic":data["organizer_semantic"][i]})
                         
 
-                        doc_text_wrote=True
-                    ###coreference model 
-                    
-                    #TODO:test the filter mode
-                    #if filter was not flagged, default filter is either sentence is positve either contains trigger value
-                    # if not args.filter_unprotested_sentence or not args.filter_unprotested_doc:
-                    #     assert(len(output_dicts)==len(corerefence_sentences))
-                    #     for i,x in enumerate(output_dicts):
-                    #         if not x["triggers"] or x["sentence_label"]=='1':
-                    #             continue
-                    #         corerefence_sentences[i]=None
-                    #     corerefence_sentences= [x for x in corerefence_sentences if x]
+                        doc_text_wrote=True #to avoid writting the text of document in each sentence
 
+                    ###coreference model 
                     #predict all the sentences in corerefence_sentences
 
                     pred_coref=cm.predict(corerefence_sentences)
-
                     #extract the groups ids
                     list_of_span=[] 
                     for x in pred_coref: 
@@ -201,28 +195,20 @@ def main():
                             output_dicts[span[i+1]]=None
                             temp["sentence_label"].append(temp2['sentence_label'])
                             for x in ["sentence_text","triggers","places","times","participants","organizers","targets","facilities","trigger_semantic","participant_semantic","organizer_semantic"]:
-                                # if temp[x] and temp2[x]:
-                                #     temp[x]=" [NS] ".join([temp[x],temp2[x]])
-                                # elif temp2[x]:
-                                #     temp[x]=temp2[x]
                                 temp[x]=" [NS] ".join([temp[x],temp2[x]])
                         output_dicts.append(temp)
 
-
-
                     if args.output_type=="csv":
-                        [writer.writerow(output_dict) for output_dict in output_dicts if output_dict] #change it to wrtie list 
+                        [writer.writerow(output_dict) for output_dict in output_dicts if output_dict]
                     else:
-                        [wr.write(json.dumps(output_dict)+"\n") for output_dict in output_dicts if output_dict]#change it to wrtie list 
-
-                    
+                        [wr.write(json.dumps(output_dict)+"\n") for output_dict in output_dicts if output_dict]
                 
             except Exception as e :
 
                 print(e.with_traceback)
                 print(data["id"],"\t",list_of_span,len(output_dicts),len(corerefence_sentences))
                 raise RuntimeError
-    print(nnn)
+    print(count_1)
 if __name__ == '__main__':
     main()
 

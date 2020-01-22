@@ -1,3 +1,4 @@
+*.pt
 *.pickle
 *.db.*
 __pycache__/

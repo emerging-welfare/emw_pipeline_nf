@@ -183,7 +183,7 @@ model_protest = BertForSequenceClassification.from_pretrained(bert_model, PYTORC
 if torch.cuda.is_available():
     model_protest.load_state_dict(torch.load(model_path_protest_path))
     args=get_args()
-    gpu_range=args.gpu_number.split("-")
+    gpu_range=args.gpu_number.split("-") if type(args.gpu_number)==str else [args.gpu_number]
     if len(gpu_range)==1:
         device=torch.device("cuda:{0}".format(int(gpu_range[0])))
     elif len(gpu_range)==2:

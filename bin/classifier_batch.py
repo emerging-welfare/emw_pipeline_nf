@@ -1,3 +1,10 @@
+#Abdurrahman Beyaz. abdurrahmanbeyaza@gmail.com
+"""
+This class is one of component of the pipeline.It reads a given json files as a batch and send request to FLASK documenet classifier API.
+This component may be positioned either as first where the news articles are already in JSON format, or as second after the news articles that are in formatted stuctured like HTML converted to JSON format.
+the lines that end with '#' must be used in case of this component is used as first and lines that end with '##' must be used in case of this component is used as second. 
+"""
+
 import argparse
 import json
 import requests
