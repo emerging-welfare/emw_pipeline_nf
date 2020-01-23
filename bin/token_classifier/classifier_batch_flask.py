@@ -84,7 +84,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier_flask.py',
                                      description='Flask Server for Token  Classification')
-    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 7 ",default=7)
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 7 ",default='7')
     args = parser.parse_args()
 
     return(args)

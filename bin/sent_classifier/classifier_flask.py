@@ -95,10 +95,10 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier_flask.py',
                                      description='Flask Server for Sentence Classification')
-    parser.add_argument('--gpu_number_protest', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format '0,1,2,3', where 0,1,2 and 3 gpus will be allocated.\n or just type the number of required gpu, i.e 6 ",default=6)
-    parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default=3)
-    parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default=4)
-    parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default=5)
+    parser.add_argument('--gpu_number_protest', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format '0,1,2,3', where 0,1,2 and 3 gpus will be allocated.\n or just type the number of required gpu, i.e 6 ",default='6')
+    parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default='3')
+    parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default='4')
+    parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default='5')
     
 
     args = parser.parse_args()
