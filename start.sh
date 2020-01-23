@@ -21,21 +21,14 @@ if (( $screen_number == 7 )) ; then
 else
     echo "starting the flask models"
     killall screen # 
-    screen -dm python  $path_to_repo/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier
-    screen -dm python  $path_to_repo/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
-    screen -dm python  $path_to_repo/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
-    screen -dm python  $path_to_repo/bin/violent_classifier/classifier_flask.py
+    screen -dmL -Logfile ./.document_classifier.log python $path_to_repo/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier 
+    screen -dmL -Logfile ./.sentence_classifier.log python  $path_to_repo/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+    screen -dmL -Logfile ./.token_classifier.log python $path_to_repo/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
+    screen -dmL -Logfile ./.document_voilent.log python $path_to_repo/bin/violent_classifier/classifier_flask.py
     sleep 60
 fi
 
 #TODO: add seqential version
-if [ "$all_components" = true ] ; then
-    echo 'git checkout all_components!'
-    # git checkout all_components
-else
-    echo 'git checkout hpc'
-    # git checkout hpc 
-fi
 
 echo "input folder is =$input" >&2
 echo "output folder is=$output">&2
@@ -50,7 +43,10 @@ echo ' {
       "source":"'"$source"'",
       "doc_batchsize":'$doc_batchsize',
       "token_batchsize":'$token_batchsize',
-      "prefix":"'"$prefix"'"
+      "prefix":"'"$prefix"'",
+      "extractor_script_path":"'"$extractor_script_path"'",
+      "cascaded":'$cascaded',
+      "classifier_first":'$classifier_first' 
    }' > params.json
 
 cat params.json
@@ -61,10 +57,11 @@ pipeline_signal=false
 echo "running the pipeline"
 if [ "$resume" = true ] ; then 
         echo "nextflow emw_pipeline.nf -params-file params.json -resume "
-        nextflow emw_pipeline.nf -params-file params.json -resume && killall screen && find jsons -type f | grep -v "'" | xargs cat >> output.jsons.json && find work -mindepth 1 -type d | xargs -I {} rm -rf {} &&  pipeline_signal=true ;
+        nextflow emw_pipeline.nf -params-file params.json -resume && killall screen &&  pipeline_signal=true ;
 else
       echo "nextflow emw_pipeline.nf -params-file params.json "
-      nextflow emw_pipeline.nf -params-file params.json && killall screen && find jsons -type f | grep -v "'" | xargs cat >> output.jsons.json && find work -mindepth 1 -type d | xargs -I {} rm -rf {} &&  pipeline_signal=true ;
+      nextflow emw_pipeline.nf -params-file params.json && killall screen &&  pipeline_signal=true ;
+fi
 
 if $pipeline_signal; then 
 echo "generating detailed output of the pipeline\n\n"
@@ -83,12 +80,9 @@ echo "generating detailed output of the pipeline\n\n"
             --filter_unprotested_doc  --date_key $out_date_key 
         fi
     else
-        python $path_to_repo/bin/output_to_csv.py --output_type $out_output_type /
-            --input_folder $output /
-            --o $out_name_output_file  --date_key  $out_date_key
+        python $path_to_repo/bin/output_to_csv.py --output_type $out_output_type --input_folder $output  --o $out_name_output_file  --date_key  $out_date_key
     fi
-
+    find jsons -type f | grep -v "'" | xargs cat >> output.jsons.json && find work -mindepth 1 -type d | xargs -I {} rm -rf {}
     rm -rf .nextflow*
-    fi 
 
 fi

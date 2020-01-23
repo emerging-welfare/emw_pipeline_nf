@@ -1,66 +1,27 @@
 #!/usr/bin/env nextflow
-println(params.input_dir)
-println(params.input)
-println(params.outdir)
-println(params.source_lang)
-println(params.source)
-println(params.doc_batchsize)
-println(params.token_batchsize)
-println(params.prefix)
 
+println("input path is set to $params.input")
+println("outdir path is set to $params.outdir")
+println("source lang is set to $params.source_lang")
+println("source is set to $params.source")
+println("document batchsize is set to $params.doc_batchsize")
+println("token batchisize is set to $params.token_batchsize")
+println("perfix is set to $params.prefix" )
+println("classifier is first is  $params.classifier_first")
 
 html_channel = Channel.fromPath(params.input)
 println(params.input)
-// Source 1 times
-// Source 2 newind
-// Source 3 ind
-// Source 4 thehin
-// Source 5 scm
-// Source 6 people
-
-// process extract {
-//     errorStrategy 'ignore'
-//     input:
-//         file(filename) from html_channel
-//     output:
-//         stdout(out_json) into extract_out
-//     script:
-// 	if ( params.source == 1 )
-//         """
-// 	    python3 $params.prefix/bin/extract/justext_gettext.py --input_file "$params.input_dir/$filename" --source_lang $params.source_lang
-// 	"""
-// 	else if ( params.source == 2 )
-//         """
-// 	    python2 $params.prefix/bin/extract/goose_gettext.py --input_file "$params.input_dir/$filename"
-// 	"""
-// 	else if ( params.source == 3 )
-//         """
-// 	    python3 $params.prefix/bin/extract/ind.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
-// 	"""
-// 	else if ( params.source == 4 )
-//         """
-// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
-// 	"""
-// 	else if ( params.source == 5 )
-//         """
-// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename" --no_byte
-// 	"""
-// 	else if ( params.source == 6 )
-//         """
-// 	    python2 $params.prefix/bin/extract/boilerpipe_gettext.py --input_file "$params.input_dir/$filename"
-// 	"""
-// 	else
-// 	    error "No source as : ${params.source}"
-// }
-
 
 process extract {
-    //errorStrategy 'ignore'
-    input:
-        file(filename) from html_channel
-    output:
-        stdout(out_json) into extract_out
-    script:
+   //errorStrategy 'ignore'
+   input:
+       file(filename) from html_channel
+   output:
+       stdout(out_json) into extract_out
+    when:
+        !params.classifier_first
+        
+   script:
 	def asd = ".json"
 	def file = new File(params.outdir + filename + ".json")
 	if ( file.exists() )
@@ -68,52 +29,63 @@ process extract {
 	    echo '"$filename$asd"'
 	"""
 	else
-        """
-	    python3 $params.prefix/bin/extract/lxml_times.py --input_file "$params.input_dir/$filename" --out_dir $params.outdir
+       """
+	    python3 $params.extractor_script_path --input_file "$params.input_dir/$filename" --out_dir $params.outdir 
 	"""
 }
 
 
-// process doc_preprocess {
-//     errorStrategy { try { in_json = in_json.replaceAll("\\[QUOTE\\]", "'"); if (in_json == null) { return 'ignore' } ;data = jsonSlurper.parseText(in_json); new File(params.outdir + data["id"] + "json.extract").write(in_json, "UTF-8") } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-//     input:
-//         val(in_json) from extract_out
-//     output:
-//         stdout(out_json) into preprocess_out
-//     script:
-// 	"""
-// 	python3 $params.prefix/bin/doc_preprocess.py --input_dir $params.input_dir --data '$in_json' --source $params.source --out_dir $params.outdir
-// 	"""
-// }
-
 process classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-   // errorStrategy 'ignore'
+    // errorStrategy 'ignore'
     input:
         val(in_json) from extract_out.collate(params.doc_batchsize)
     output:
         stdout(out_json) into classifier_out
     script:
+    if (!params.classifier_first)
+        if (params.cascaded)
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
+        """
+        else
         """
         python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
         """
+    else
+        if (params.cascaded)
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first --cascaded
+        """
+        else
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
+        """
+        
 }
 
 process sent_classifier {
-    errorStrategy { try { if (in_json == null || in_json == "N") { return 'ignore' }; in_json = Eval.me(in_json).flatten(); for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+//    errorStrategy { try { if (in_json == null || in_json == "N") { return 'ignore' }; in_json = Eval.me(in_json).flatten(); for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+//    errorStrategy 'ignore'
     input:
         val(in_json) from classifier_out.flatMap { n -> Eval.me(n) }
     output:
         stdout(out_json) into sent_out
     script:
+    if (params.cascaded)
         """
-	python3 $params.prefix/bin/sent_classifier.py --data '$in_json'
-	"""
+	    python3 $params.prefix/bin/sent_classifier.py --data '$in_json'  --out_dir $params.outdir --cascaded
+	    """
+    else
+        """
+	    python3 $params.prefix/bin/sent_classifier.py --data '$in_json'  --out_dir $params.outdir
+	    """
 }
 
 process token_classifier {
-    errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.sent").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-   input:
+//    errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.sent").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    // errorStrategy 'ignore' 
+  input:
         val(in_json) from sent_out.collate(params.token_batchsize)
     script:
     """
@@ -121,15 +93,3 @@ process token_classifier {
     """
 }
 
-
-// process token_classifier {
-//    errorStrategy 'ignore'
-//    input:
-//         val(filename) from html_channel.collate(params.token_batchsize)
-//     script:
-//     filename = filename.collect { '"' + it + '"' }
-    
-//     """
-//     python3 $params.prefix/bin/token_classifier_batch.py --input_files '$filename' --out_dir $params.outdir
-//     """
-// }
