@@ -97,7 +97,8 @@ def main():
                     if args.filter_unprotested_doc:
                         if data["doc_label"] == 0:
                             continue 
-                    
+                    if "tokens" not in data.keys():
+                        continue
                     if data["tokens"]==[""]:
                         print(filename,"has empty tokens array !!!")
                         continue
