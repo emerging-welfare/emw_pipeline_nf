@@ -141,7 +141,7 @@ class queryList(Resource):
         return args, 201
 
 label_list = ["0", "1"]
-max_seq_length = 256
+max_seq_length = 512
 
 bert_model = HOME+"/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = HOME+"/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
