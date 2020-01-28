@@ -19,23 +19,27 @@ where the output of each component is as follows,
 
 [An example output](output_example.md) can be found at the end of the page. 
 
-This Repo contains two branchs ,
 # Pipeline Configuration. 
 
 * when cascaded parameter is true
 
-This option will run the pipeline as it illustrated in the flowchart. Where no filtering will be applied. where the file will cross by all component in all level. 
+It will run the pipeline as illustrated in the flowchart below. Where no filtering will be applied. where the file will cross by all component in all level. 
 
 Flowchart,
 
-![all_components](https://media.giphy.com/media/lrtUmgopBzTYIB3tA8/giphy.gif)
+
+![flowchart_all](https://user-images.githubusercontent.com/9295206/73179222-f3e8c300-4123-11ea-9051-42d091aab809.jpg)
+[gif version](https://media.giphy.com/media/lrtUmgopBzTYIB3tA8/giphy.gif)
 
 
 * when cascaded parameter is false
-This option will run the pipeline as it illustrated in the flowchart. Where filtering will be applied and only postive sentences of a postive document will be passed.
+It will run the pipeline as illustrated in the flowchart below. Where filtering will be applied and only postive sentences of a postive document will be passed.
+
+ 
+![flowchart_hpc](https://user-images.githubusercontent.com/9295206/73265441-09262600-41e6-11ea-93d4-6b561c3020f3.png)
 
 
-![cascaded](https://media.giphy.com/media/gIOFwSETRmtKI29yIj/giphy.gif)
+[gif version](https://media.giphy.com/media/gIOFwSETRmtKI29yIj/giphy.gif)
 
 
 ## Prerequisite
@@ -44,7 +48,7 @@ This option will run the pipeline as it illustrated in the flowchart. Where filt
 
 
 ## Installation
-`install.sh` will install/download the following models in $HOME/.pytorch_pretrained_bert folder
+`install.sh` will install/download the following models in $HOME/.pytorch_pretrained_bert folder.
 
 * Nextflow
 * Python requirments libraries (requirement.txt)
@@ -59,121 +63,145 @@ source install.sh
 
 ## Parameters
 It can be modified in `nextflow.conf` file 
-* cascaded 
-
-    true/false 
-
-* classifier_first
+* `cascaded`
 
     true/false
-    if false pipeline starts with extractor if True the first component of the pipeline will be classifier
 
-* gpu_classifier
+    as it's explained in 'Pipeline Configuration' section.
+
+* `classifier_first`
+
+    true/false
+
+    if false pipeline starts with extractor.
+
+    if true the first component of the pipeline will be the classifier, hence the input files must be JSON formatted and contain the following variables,
+    ```
+    {
+        "id":str,
+        "length":int,
+        "text":str,
+        "time":str,
+        "title":str
+    }
+    ```
+
+* `gpu_classifier`
     
-    number of the group of the GPU/'s is/are assgined to document proteset classifier.
+    GPU id or group of GPU ids that is/are assgined to document proteset classifier.
 
     A single number or series of number joined by comma ie 1,2,3
 
-* gpu_number_tsc
+* `gpu_number_tsc`
     
-    number of the group of the GPU/'s is/are assgined to trigger semantic classifier.
+    GPU id or group of GPU ids that is/are assgined to trigger semantic classifier.
 
     A single number or series of number joined by comma ie 1,2,3
 
-* gpu_number_psc
+* `gpu_number_psc`
 
-    number of the group of the GPU/'s is/are assgined to participant semantic classifier.
-
-    A single number or series of number joined by comma ie 1,2,3
-
-* gpu_number_osc
-
-    number of the group of the GPU/'s is/are assgined to organization semantic classifier.
+    GPU id or group of GPU ids that is/are assgined to participant semantic classifier.
 
     A single number or series of number joined by comma ie 1,2,3
 
-* gpu_number_protest
+* `gpu_number_osc`
 
-    number of the group of the GPU/'s is/are assgined to sentence protest classifier.
-
-    A single number or series of number joined by comma ie 1,2,3
-* gpu_token
-
-    number of the group of the GPU/'s is/are assgined to token classifier.
+    GPU id or group of GPU ids that is/are assgined to organization semantic classifier.
 
     A single number or series of number joined by comma ie 1,2,3
 
-* input
+* `gpu_number_protest`
+
+    GPU id or group of GPU ids that is/are assgined to sentence protest classifier.
+
+    A single number or series of number joined by comma ie 1,2,3
+
+* `gpu_token`
+
+    GPU id or group of GPU ids that is/are assgined to token classifier.
+
+    A single number or series of number joined by comma ie 1,2,3
+
+* `input`
 
     input folder Path 
 
     "\<PATH\>" .not ending with backslash
 
-* output
+* `output`
 
     output folder path
 
     "\<PATH\>/jsons/"
 
-* resume
-    nextflow's parameter https://www.nextflow.io/docs/latest/getstarted.html#modify-and-resume
+* `resume`
 
     true/false
 
-* files_start_with
+    nextflow's parameter https://www.nextflow.io/docs/latest/getstarted.html#modify-and-resume    
+
+* `files_start_with`
     
-    file name pattern
+    file names pattern
+
     ie "*" ,"\*json" ,"\http\*"
 
-
-* doc_batchsize
+* `doc_batchsize`
 
     Document protest classifier batch size 
 
-* token_batchsize
+* `token_batchsize`
 
     token classifier batch size 
 
-* prefix
+* `prefix`
 
     path to pipeline scripts
 
-   ie "\<Path\>/emw_pipeline_nf" 
+    ie "\<Path\>/emw_pipeline_nf" 
 
-* extractor_script_path
+* `extractor_script_path`
 
     path to html to text script 
 
     ie $prefix"/bin/extract/peoples_chaina.py" # 
 
-#out_to_csv script's parameters 
-* out_output_type
+#### out_to_csv script's parameters 
+* `out_output_type`
 
-    type of output record 
+    type of output record file
 
     csv/json
 
-* out_name_output_file
+* `out_name_output_file`
 
-    name of outfile record
+    name of outfile record file
 
-* out_date_key
+* `out_date_key`
 
-    the key of date in the dataset
+    the key of date inside the dataset
 
     ie "time","date"
 
-* filter_unprotested_sentence
-
-    inclulde protest sentence in the record 
+* `filter_unprotested_sentence`
 
     true/false
-
-* filter_unprotested_documents
     
-    inclulde protest document in the record 
+    filter protest sentences in the record file.
 
+    if true only sentences that are postive will be inculded.
+
+    if false all the sentences will be included irrespective of their document label
+
+* `filter_unprotested_documents`
+    
     true/false
+
+    filter protest document in the record file.
+
+    if true only sentences that are in postive document will be inculded.
+
+    if false all the sentences will be include irrespective of their document label
 
 
 ## Run 
