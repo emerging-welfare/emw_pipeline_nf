@@ -192,7 +192,7 @@ It can be modified in `nextflow.conf` file
 
     if true only sentences that are postive will be inculded.
 
-    if false all the sentences will be included irrespective of their document label
+    if false all the sentences will be included irrespective of their label
 
 * `filter_unprotested_documents`
     
