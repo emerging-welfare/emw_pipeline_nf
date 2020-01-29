@@ -23,12 +23,13 @@ where the output of each component is as follows,
 
 * when cascaded parameter is true
 
-It will run the pipeline as illustrated in the flowchart below. Where no filtering will be applied. where the file will cross by all component in all level. 
+It will run the pipeline as illustrated in the flowchart below. Where no filtering will be applied hence, files will cross by all component in all level. 
 
 Flowchart,
 
 
-![flowchart_all](https://user-images.githubusercontent.com/9295206/73179222-f3e8c300-4123-11ea-9051-42d091aab809.jpg)
+![cascaded](https://user-images.githubusercontent.com/9295206/73354823-b01ec680-42a7-11ea-98a1-d8f7f2c84e7b.png)
+
 [gif version](https://media.giphy.com/media/lrtUmgopBzTYIB3tA8/giphy.gif)
 
 
