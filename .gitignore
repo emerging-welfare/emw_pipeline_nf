@@ -17,4 +17,5 @@ output/
 out_pos_jsons/
 pos_jsons/
 *.csv
+*.json
 violent_model.pickle

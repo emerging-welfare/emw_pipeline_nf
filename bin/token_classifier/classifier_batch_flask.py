@@ -33,51 +33,68 @@ def index():
         return "<html><body><p>classifier is not loaded</p></body></html>"
         # return markdown.markdown("classifier is not loaded")
 
-def prepare_input(lines):
+def prepare_input(lines, tokenization_fix=False):
     # examples = []
     words = []
     for (i, line) in enumerate(lines):
         line = line.strip()
         if line == "SAMPLE_START":
             words.append("[CLS]")
-        elif line == "[SEP]":
-            continue
-        elif line == "":
-            tokens = []
-            for (j, word) in enumerate(words):
-                if word == "[CLS]":
-                    tokens.append("[CLS]")
-                    continue
-
-                tokenized = tokenizer.tokenize(word)
-                if tokenized:
-                    tokens.append(tokenized[0])
-                else:
-                    tokens.append("[UNK]")
-
-            if len(tokens) > max_seq_length - 1:
-                tokens = tokens[0:(max_seq_length - 1)]
-
-            tokens.append("[SEP]") # For BERT
-            tokens = tokenizer.convert_tokens_to_ids(tokens)
-
-            segment_ids = [0] * len(tokens)
-            input_mask = [1] * len(tokens)
-
-            while len(tokens) < max_seq_length:
-                tokens.append(0)
-                segment_ids.append(0)
-                input_mask.append(0)
-
-            # examples.append((tokens, input_mask, segment_ids))
-            words = []
-            continue
-        elif line in ["\x91", "\x92", "\x97"]:
+        elif line in ["[SEP]", "\x91", "\x92", "\x97"]:
             continue
         else:
             words.append(line)
 
-    return tokens, input_mask, segment_ids
+    # NOTE : As you see the things we mask with input_mask are just "[PAD]" tokens, the rest of the tokens are used in throughout BERT,
+    # with the sole exception that some of them ([CLS], [SEP] and extra subword tokens) do not get evaluated at the end.
+    # This is where labeling mask comes into play.
+    tokens = []
+    labeling_mask = []
+    for (j, word) in enumerate(words):
+        if word == "[CLS]":
+            tokens.append("[CLS]")
+            labeling_mask.append(0)
+            continue
+
+        tokenized = tokenizer.tokenize(word)
+
+        if not tokenization_fix: # in this case labeling_mask = input_mask - CLS and SEP token
+            labeling_mask.append(1)
+            if len(tokenized) > 0:
+                tokens.append(tokenized[0])
+            else:
+                tokens.append("[UNK]")
+
+        else:
+            # If we want to keep all wordpieces
+            labeling_mask.append(1)
+            if len(tokenized) == 1:
+                tokens.extend(tokenized)
+            elif len(tokenized) > 1:
+                tokens.extend(tokenized)
+                labeling_mask.extend([0]*(len(tokenized) - 1))
+            else:
+                tokens.append("[UNK]")
+
+    if len(tokens) > max_seq_length - 1:
+        tokens = tokens[0:(max_seq_length - 1)]
+        labeling_mask = labeling_mask[0:(max_seq_length - 1)]
+
+    tokens.append("[SEP]") # For BERT
+    labeling_mask.append(0)
+    tokens = tokenizer.convert_tokens_to_ids(tokens)
+
+    segment_ids = [0] * len(tokens)
+    input_mask = [1] * len(tokens)
+
+    while len(tokens) < max_seq_length:
+        tokens.append(0)
+        segment_ids.append(0)
+        input_mask.append(0)
+        labeling_mask.append(0)
+
+    return tokens, input_mask, segment_ids, labeling_mask
+
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -90,17 +107,13 @@ def get_args():
     return(args)
 
 
-def predict(all_tokens):
+def predict(all_tokens, tokenization_fix=True): # For token models before 2020-02-21 use tokenization_fix=False
     all_input_ids = list()
     all_input_mask = list()
     all_segment_ids = list()
-    all_org_input_mask = list()
+    all_labeling_mask = list()
     for tokens in all_tokens:
-        input_ids, input_mask, segment_ids = prepare_input(tokens)
-
-        org_input_mask = input_mask
-        org_input_mask = [x for x in org_input_mask if x != 0]
-        all_org_input_mask.append(org_input_mask)
+        input_ids, input_mask, segment_ids, labeling_mask = prepare_input(tokens, tokenization_fix=tokenization_fix)
 
         input_ids = torch.tensor(input_ids, dtype=torch.long).unsqueeze(0)
         input_mask = torch.tensor(input_mask, dtype=torch.long).unsqueeze(0)
@@ -109,47 +122,44 @@ def predict(all_tokens):
         all_input_ids.append(input_ids)
         all_input_mask.append(input_mask)
         all_segment_ids.append(segment_ids)
+        all_labeling_mask.append(labeling_mask)
 
     all_input_ids = torch.cat(all_input_ids, dim=0).to(device)
     all_input_mask = torch.cat(all_input_mask, dim=0).to(device)
     all_segment_ids = torch.cat(all_segment_ids, dim=0).to(device)
+    all_labeling_mask = numpy.array(all_labeling_mask)
 
     logits = model(all_input_ids, all_segment_ids, all_input_mask)
     logits = logits.detach().cpu().numpy()
-    temp_labels = numpy.argmax(logits, axis=-1).tolist()
+    temp_labels = numpy.argmax(logits, axis=-1)
 
     all_labels = []
-    for labels, org_input_mask, tokens in zip(temp_labels, all_org_input_mask, all_tokens):
-        labels = labels[0:len(org_input_mask)]
+    for i in range(len(all_tokens)):
+        tokens = all_tokens[i]
+        labels = temp_labels[i,:]
+        labeling_mask = all_labeling_mask[i,:]
+        labels = labels[labeling_mask != 0] # remove CLS, all extra subwords, SEP and PAD tokens
+
         new_labels = []
         j = 0
-        count = 0
-        for (i, line) in enumerate(tokens):
+        for line in tokens:
             line = line.strip()
             if line == "SAMPLE_START":
-                count += 1
                 new_labels.append("O")
-                j += 1
-            elif line == "[SEP]":
+            elif line in ["[SEP]", "\x91", "\x92", "\x97"]:
                 new_labels.append("O")
-            elif line == "\x91":
-                new_labels.append("O")
-            elif line == "\x92":
-                new_labels.append("O")
-            elif line == "\x97":
-                new_labels.append("O")
-            elif line == "": # We only have one sample, so doesn't actually matter
-                count = 0
-                j += 1 # We have a SEP at the end for BERT
             else:
-                count += 1
-                if count < max_seq_length:
+                if j < len(labels): # since we have this many labels predicted
                     new_labels.append(label_map[labels[j]])
                     j += 1
-                else: # if we cut sequences longer than max_seq_length
+
+                # NOTE : if we cut sequences longer than max_seq_length, since we don't have predictions for the tokens
+                # after 510, we have to assign them "O" label.
+                # TODO : Implement chunking to mitigate this problem. Divide document to smaller, preferably overlapping chunks,
+                # use some voting mechanism to combine predicted token labels for the whole sequence.
+                else:
                     new_labels.append("O")
 
-        new_labels.append("O") # for "" at the end
         all_labels.append(new_labels)
 
     return all_labels
@@ -166,6 +176,7 @@ class queryList(Resource):
 
         all_tokens = []
         for sentences in args["sentences"]:
+
             tokens = ["SAMPLE_START"]
             for sentence in sentences:
                 words = word_tokenize(sentence)
@@ -173,7 +184,7 @@ class queryList(Resource):
                 tokens.append("[SEP]")
 
             tokens.pop() # Pop last [SEP]
-            tokens.append("")
+
             all_tokens.append(tokens)
 
         args["tokens"] = all_tokens
@@ -211,8 +222,9 @@ elif len(gpu_range)>=2:
              device_ids= [int(x) for x in gpu_range]
              device=torch.device("cuda:{0}".format(int(device_ids[0])))
              model = torch.nn.DataParallel(model,device_ids=device_ids,output_device=device, dim=0)
+
 model.to(device)
-#model.to(device)
+model.eval()
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4998, debug=True)
