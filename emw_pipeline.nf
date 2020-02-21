@@ -12,6 +12,8 @@ println("classifier is first is  $params.classifier_first")
 html_channel = Channel.fromPath(params.input)
 println(params.input)
 
+if (!params.classifier_first) {
+
 process extract {
    //errorStrategy 'ignore'
    input:
@@ -39,7 +41,7 @@ process classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore'
     input:
-        val(in_json) from extract_out.collate(params.doc_batchsize)
+	val(in_json) from extract_out.collate(params.doc_batchsize)
     output:
         stdout(out_json) into classifier_out
     script:
@@ -63,6 +65,41 @@ process classifier {
         """
         
 }
+
+}
+else {
+
+process first_classifier {
+    // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    // errorStrategy 'ignore'
+    input:
+	file(in_json) from html_channel
+    output:
+        stdout(out_json) into classifier_out
+    script:
+    if (!params.classifier_first)
+        if (params.cascaded)
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
+        """
+        else
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
+        """
+    else
+        if (params.cascaded)
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first --cascaded
+        """
+        else
+        """
+        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
+        """
+        
+}
+
+}
+
 
 process sent_classifier {
 //    errorStrategy { try { if (in_json == null || in_json == "N") { return 'ignore' }; in_json = Eval.me(in_json).flatten(); for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
