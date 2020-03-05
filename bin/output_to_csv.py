@@ -99,7 +99,6 @@ def main():
         files_processed = 0
 
         for filename in tqdm.tqdm(files):
-            pdb.set_trace()
             try:
                 corerefence_sentences = []
                 output_dicts = []
@@ -124,9 +123,7 @@ def main():
                     logging.error("{0} file, misses the 'text' field, passing ... ".format(filename))
                     continue
 
-                pdb.set_trace()
                 data = postprocess(data)
-                pdb.set_trace()
                 if not data:
                     print("Something wrong with postprocess")
                     continue

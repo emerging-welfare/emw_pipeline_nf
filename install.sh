@@ -26,7 +26,7 @@ echo "nltk corpous are installed"
 
 #is_violent
 echo "Installing Violent Classifier" 
-mkdir bin/violent_classifier && cd bin/violent_classifier && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
+cd ~/.pytorch_pretrained_bert && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
 echo "Violent Classifier is installed"
 
 #Trigger Semantic Categorization
