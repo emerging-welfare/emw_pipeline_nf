@@ -112,7 +112,7 @@ def identity(arg):
 
 global model
 HOME=os.getenv("HOME")
-with open(HOME+"/emw_pipeline_nf/bin/violent_classifier/violent_model.pickle", 'rb') as f:
+with open(HOME+"/.pytorch_pretrained_bert/violent_model.pickle", 'rb') as f:
         model = pickle.load(f)
 
 api.add_resource(queryList, '/queries')
