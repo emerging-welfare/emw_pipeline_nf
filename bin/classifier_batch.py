@@ -60,7 +60,10 @@ if __name__ == "__main__":
         data["sentences"]= out_sentences if len(out_sentences)>0 else []
         keys=data.keys()
         if "id" not in keys and 'url' in keys:
-            data["id"]=data["url"].replace(":","_").replace("/","_")+ datetime.now().strftime("%f") 
+            data["id"]=data["url"].replace(":","_").replace("/","_")+ datetime.now().strftime("%f")
+        else:
+            # if a document doesn't have id nor url fields, use the filename as id (i.e. url)
+            data["id"] = files[i]
         #output_data.append(dump_to_json(data))
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir) 
         if (out==1 and args.cascaded) or (not args.cascaded): 

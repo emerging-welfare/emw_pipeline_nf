@@ -55,7 +55,7 @@ def postprocess(data):
         if token == "SAMPLE_START":
             token_labels = []
             tokens = []
-        elif token == "[SEP]" or token == "":
+        elif token == "[SEP]":
             all_tokens.append(tokens)
             # if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
             #     token_labels = ["O"] * len(token_labels)
@@ -68,6 +68,8 @@ def postprocess(data):
             tokens.append(token)
             token_labels.append(data["token_labels"][i])
 
+    all_token_labels.append(token_labels)
+    all_tokens.append(tokens)
     data["token_labels"] = all_token_labels
     data["tokens"] = all_tokens
     return data

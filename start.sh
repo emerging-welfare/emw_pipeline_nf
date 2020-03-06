@@ -20,7 +20,7 @@ if (( $screen_number == 7 )) ; then
     echo "flasks are already is running"
 else
     echo "starting the flask models"
-    killall screen # 
+#    killall screen # 
     screen -dm python $path_to_repo/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
     screen -dm python  $path_to_repo/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
     screen -dm python $path_to_repo/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token

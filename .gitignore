@@ -19,3 +19,5 @@ pos_jsons/
 *.csv
 *.json
 violent_model.pickle
+*.conf
+.gitignore
