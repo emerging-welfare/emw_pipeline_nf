@@ -12,7 +12,7 @@ import tqdm
 import csv
 import logging
 import pdb
-from coreference_model import coreference_model as cm
+# from coreference_model import coreference_model as cm
 
 logging.basicConfig(filename='/home/madbulattif18/emw_pipeline_nf/out_to_csv.log', filemode='w',
                     format='%(asctime)s %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -128,9 +128,6 @@ def main():
                     print("Something wrong with postprocess")
                     continue
 
-                if data["text"] == "" or "text" not in data.keys():
-                    logging.warning("{0} named file, has an empty 'text' field, passing ...".format(filename))
-                    continue
                 data["id"] = filename_to_url(data["id"])
 
                 for i, sent_label in enumerate(data["sent_labels"]):
@@ -206,13 +203,13 @@ def main():
                 ###coreference model
                 # predict all the sentences in corerefence_sentences
 
-                pred_coref = cm.predict(corerefence_sentences)
+                # pred_coref = cm.predict(corerefence_sentences)
                 # extract the groups ids
                 list_of_span = []
-                for x in pred_coref:
-                    if len(x) > 1:
-                        list_of_span.append([])
-                        [list_of_span[-1].append(w["id"]) for w in x]
+                # for x in pred_coref:
+                #     if len(x) > 1:
+                #         list_of_span.append([])
+                #         [list_of_span[-1].append(w["id"]) for w in x]
 
                 # merge operation
                 # TODO check if output_dicts[span[i+1]] and output_dicts[span[i]] give the correct answers.
