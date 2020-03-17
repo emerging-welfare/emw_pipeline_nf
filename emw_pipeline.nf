@@ -73,7 +73,7 @@ process first_classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore'
     input:
-	file(in_json) from html_channel
+	file(in_json) from html_channel.collate(params.doc_batchsize)
     output:
         stdout(out_json) into classifier_out
     script:
