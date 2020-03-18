@@ -37,9 +37,8 @@ if __name__ == "__main__":
     args = get_args()
     jsons = []
     if args.first:
-        files=args.input_files.strip("[ ]").split(",")
+        files=args.input_files.split()
         for filename in files:
-            filename=filename.strip("' ")
             jsons.append(read_from_json(filename))
     else:
         files = eval(args.input_files)
