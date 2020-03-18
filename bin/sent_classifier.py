@@ -1,12 +1,10 @@
 import argparse
 import json
 import requests
-from utils import dump_to_json
-#from utils import load_from_json
-from utils import read_from_json
-from utils import change_extension
-from utils import write_to_json
-
+from utils import load_from_json
+import os
+import math
+from shutil import copyfile
 
 def get_args():
     '''
@@ -14,9 +12,9 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='sent_classifier.py',
                                      description='Sentence FLASK BERT Classififer Application ')
-    parser.add_argument('--out_dir', help="output folder")
-    parser.add_argument('--data', help="Serialized json string")
-    parser.add_argument('--cascaded', help="enable cascaded version" ,action="store_true",default=False)
+    parser.add_argument('--out_dir', help="Output folder")
+    parser.add_argument('--input_dir', help="Input folder")
+    parser.add_argument('--data', help="Input JSON data")
     args = parser.parse_args()
 
     return(args)
@@ -32,20 +30,52 @@ def request_violent(id,text):
 
 if __name__ == "__main__":
     args = get_args()
-#    data = load_from_json(args.data)
-    data=read_from_json(args.data)
-    if "sentences" not in data.keys():
-        data["sentences"]=[]
-        data["sent_labels"]=[]
-    else:
-        rtext = request(data["sentences"])
-        data["sent_labels"] = [int(i) for i in rtext["output_protest"]]
-        data["Trigger_Semantic_label"]=rtext["output_sem"]
-        data["participant_semantic"]=rtext["partic_sem"]
-        data["organizer_semantic"]=rtext["org_sem"]
-    
-    is_violent=request_violent(data["id"],data["text"])
-    data["is_violent"]= is_violent if is_violent else "0"
-    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
-    if (1 in data["sent_labels"] and args.cascaded) or (not args.cascaded):
-        print(args.out_dir+change_extension(data["id"],".json"))
+    jsons=eval(args.data)
+
+    rtext = request([" ".join([str(tok) for tok in d["sent_tokens"]]) for d in jsons])
+    sent_labels = rtext["output_protest"]
+    # trigger_semantic_labels=rtext["output_sem"]
+    # participant_semantic_labels=rtext["partic_sem"]
+    # organizer_semantic_labels=rtext["org_sem"]
+
+    # TODO : When writing, since other sentences that belong to this document can be in some other batch, and we have 8 cpus and batches run concurrently, there might be some overlap??? -> Solved this for now, but need to test with bigger data.
+    # TODO : for task parallelism part just return predictions, and then do this part in another process where all the things are gathered, so that we only write to file once.
+    uniq_filenames = list(set([d["filename"] for d in jsons]))
+    for filename in uniq_filenames:
+        curr_jsons = [(i,d) for i,d in enumerate(jsons) if d["filename"] == filename]
+
+        if not os.path.exists(args.out_dir + filename):
+            copyfile(args.input_dir + filename, args.out_dir + filename)
+
+        with open(args.out_dir + filename, "r+", encoding="utf-8") as f:
+            json_data = json.loads(f.read())
+            f.seek(0,0)
+            for i,d in curr_jsons:
+                json_data["sent_labels"][d["sent_num"]] = sent_labels[i]
+                # json_data["trigger_semantic"][d["sent_num"]] = trigger_semantic_labels[i]
+                # json_data["participant_semantic"][d["sent_num"]] = participant_semantic_labels[i]
+                # json_data["organizer_semantic"][d["sent_num"]] = organizer_semantic_labels[i]
+
+            f.write(json.dumps(json_data) + "\n")
+
+            # fd = os.open(args.input_dir + filename, os.O_RDWR)
+            # try:
+            #     json_data = json.loads(os.read(fd, 100000000).decode("utf-8"))
+            #     for i,d in curr_jsons:
+            #         json_data["sent_labels"][d["sent_num"]] = sent_labels[i]
+            #         # json_data["trigger_semantic"][d["sent_num"]] = trigger_semantic_labels[i]
+            #         # json_data["participant_semantic"][d["sent_num"]] = participant_semantic_labels[i]
+            #         # json_data["organizer_semantic"][d["sent_num"]] = organizer_semantic_labels[i]
+
+            #     out_text = json.dumps(json_data) + "\n"
+            #     os.write(fd, out_text.encode("utf-8"))
+            # except:
+            #     pass
+
+            # os.set_blocking(fd, False)
+            # os.close(fd)
+
+
+    # TODO : violent here or somewhere else?
+    # is_violent=request_violent(data["id"],data["text"])
+    # data["is_violent"]= is_violent if is_violent else "0"

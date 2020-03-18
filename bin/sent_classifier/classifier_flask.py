@@ -32,62 +32,21 @@ def index():
         return "<html><body><p>classifier is not loaded</p></body></html>"
         # return markdown.markdown("classifier is not loaded")
 
-def prepare_data(sentences, label_list, max_seq_length, tokenizer):
-    batches = []
-    for i in range(0,len(sentences),batchsize):
-        input_ids_all = []
-        input_mask_all = []
-        segment_ids_all = []
-        if len(sentences) - i > batchsize: length = batchsize
-        else: length = len(sentences) - i
-        for j in range(length):
-            input_ids, input_mask, segment_ids = convert_text_to_features(sentences[i+j], label_list, max_seq_length, tokenizer)
-            input_ids = torch.tensor(input_ids, dtype=torch.long).unsqueeze(0)
-            input_mask = torch.tensor(input_mask, dtype=torch.long).unsqueeze(0)
-            segment_ids = torch.tensor(segment_ids, dtype=torch.long).unsqueeze(0)
+def prepare_data(sentences, max_seq_length):
+    input_ids_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
+    input_mask_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
+    segment_ids_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
+    for i,input_ids in enumerate(sentences):
+        input_mask = [1] * len(input_ids)
+        input_ids = input_ids + [0] * (max_seq_length - len(input_ids))
+        input_mask = input_mask + [0] * (max_seq_length - len(input_mask))
+        input_ids = torch.tensor(input_ids, dtype=torch.long)
+        input_mask = torch.tensor(input_mask, dtype=torch.long)
 
-            input_ids_all.append(input_ids)
-            input_mask_all.append(input_mask)
-            segment_ids_all.append(segment_ids)
+        input_ids_all[i,:] = input_ids
+        input_mask_all[i,:] = input_mask
 
-        batches.append((torch.cat(input_ids_all, dim=0), torch.cat(input_mask_all, dim=0), torch.cat(segment_ids_all, dim=0)))
-
-    return batches
-
-def convert_text_to_features(text, label_list, max_seq_length, tokenizer):
-    label_map = {}
-    for (i, label) in enumerate(label_list):
-        label_map[label] = i
-
-    tokens_a = tokenizer.tokenize(text)
-    if len(tokens_a) > max_seq_length - 2:
-        tokens_a = tokens_a[0:(max_seq_length - 2)]
-
-    tokens = []
-    segment_ids = []
-    tokens.append("[CLS]")
-    segment_ids.append(0)
-
-    for token in tokens_a:
-        tokens.append(token)
-        segment_ids.append(0)
-
-    tokens.append("[SEP]")
-    segment_ids.append(0)
-
-    input_ids = tokenizer.convert_tokens_to_ids(tokens)
-    input_mask = [1] * len(input_ids)
-
-    while len(input_ids) < max_seq_length:
-        input_ids.append(0)
-        input_mask.append(0)
-        segment_ids.append(0)
-
-    assert len(input_ids) == max_seq_length
-    assert len(input_mask) == max_seq_length
-    assert len(segment_ids) == max_seq_length
-
-    return input_ids, input_mask, segment_ids
+    return input_ids_all, input_mask_all, segment_ids_all
 
 def get_args():
     '''
@@ -99,7 +58,7 @@ def get_args():
     parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default='3')
     parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default='4')
     parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default='5')
-    
+
 
     args = parser.parse_args()
 
@@ -107,21 +66,16 @@ def get_args():
 
 
 
-def predict(sentences,label_list,model,device):# protest classifier output list
-    all_labels = [] 
-    batches = prepare_data(sentences, label_list, max_seq_length, tokenizer)
-    for batch in batches:
-        input_ids, input_mask, segment_ids = batch
-        input_ids = input_ids.to(device)
-        input_mask = input_mask.to(device)
-        segment_ids = segment_ids.to(device)
-        logits = model(input_ids, segment_ids, input_mask)
-        logits = logits.detach().cpu().numpy()
+def predict(sentences, model, device):
+    input_ids, input_mask, segment_ids = prepare_data(sentences, max_seq_length)
+    input_ids = input_ids.to(device)
+    input_mask = input_mask.to(device)
+    segment_ids = segment_ids.to(device)
 
-        labels = numpy.argmax(logits, axis=1)
-        all_labels.extend(labels.tolist())
-
-    return all_labels
+    logits = model(input_ids, segment_ids, input_mask)
+    logits = logits.detach().cpu().numpy()
+    labels = numpy.argmax(logits, axis=1)
+    return labels.tolist()
 
 class queryList(Resource):
     def post(self):
@@ -130,58 +84,58 @@ class queryList(Resource):
         parser.add_argument('sentences', required=False, type=str, action='append', default=[])
         parser.add_argument('output', required=False)
         args = parser.parse_args()
-        output_protest = predict(args['sentences'],label_list_protest,model_protest,device)
-        output_sem = predict(args['sentences'],trigger_sem_label_list,model_sem,device_Trigger)
-        output_partic_sem = predict(args['sentences'],partic_sem_label_list,model_partic_sem,device_Partic)
-        output_org_sem = predict(args['sentences'],org_sem_label_list,model_org_sem,device_Org)
+
+        sentences = [[int(tok) for tok in token_ids.split()] for token_ids in args['sentences']]
+        output_protest = predict(sentences, model_protest, device)
+        output_protest = [label_list_protest[lab] for lab in output_protest]
+        # output_sem = predict(args['sentences'],trigger_sem_label_list,model_sem,device_Trigger)
+        # output_partic_sem = predict(args['sentences'],partic_sem_label_list,model_partic_sem,device_Partic)
+        # output_org_sem = predict(args['sentences'],org_sem_label_list,model_org_sem,device_Org)
         args["output_protest"] = output_protest
-        args["output_sem"] = trigger_sem_label_list[output_sem].tolist()
-        args["partic_sem"]=partic_sem_label_list[output_partic_sem].tolist()
-        args["org_sem"]=org_sem_label_list[output_org_sem].tolist()
+        # args["output_sem"] = trigger_sem_label_list[output_sem].tolist()
+        # args["partic_sem"]=partic_sem_label_list[output_partic_sem].tolist()
+        # args["org_sem"]=org_sem_label_list[output_org_sem].tolist()
         return args, 201
 
 #gloabl configuration
 max_seq_length = 128
-batchsize = 32
 HOME=os.getenv("HOME")
 bert_model = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 # device_cpu = torch.device("cpu")
 
 args=get_args()
 
 #### Trigger Semantic Categorization ####
-trigger_sem_label_list=numpy.array(['arm_mil', 'demonst', 'ind_act', 'group_clash'])
-trigger_sem_model=HOME+"/.pytorch_pretrained_bert/sem_cats_128.pt"
-num_labels_sem=len(trigger_sem_label_list)
-model_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem)
-device_Trigger=torch.device("cuda:{0}".format((int(args.gpu_number_tsc))))
-#model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
-model_sem.to(device_Trigger)
-######
+# trigger_sem_label_list=numpy.array(['arm_mil', 'demonst', 'ind_act', 'group_clash'])
+# trigger_sem_model=HOME+"/.pytorch_pretrained_bert/sem_cats_128.pt"
+# num_labels_sem=len(trigger_sem_label_list)
+# model_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem)
+# device_Trigger=torch.device("cuda:{0}".format((int(args.gpu_number_tsc))))
+# #model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
+# model_sem.to(device_Trigger)
+# ######
 
-### Participant Semantic Categorization ### 
-partic_sem_model_path =HOME+"/.pytorch_pretrained_bert/part_sem_cats_128.pt"
-partic_sem_label_list=numpy.array(['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 'siyasetçi', 'profesyonel', 'işçi', 'esnaf/küçük üretici', "No"])
-num_labels_sem_part=len(partic_sem_label_list)
-model_partic_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem_part)
-device_Partic=torch.device("cuda:{0}".format((int(args.gpu_number_psc))))
-# model_partic_sem.load_state_dict(torch.load(partic_sem_model_path, map_location='cpu'))
-model_partic_sem.to(device_Partic)
-#####
+# ### Participant Semantic Categorization ###
+# partic_sem_model_path =HOME+"/.pytorch_pretrained_bert/part_sem_cats_128.pt"
+# partic_sem_label_list=numpy.array(['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 'siyasetçi', 'profesyonel', 'işçi', 'esnaf/küçük üretici', "No"])
+# num_labels_sem_part=len(partic_sem_label_list)
+# model_partic_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem_part)
+# device_Partic=torch.device("cuda:{0}".format((int(args.gpu_number_psc))))
+# # model_partic_sem.load_state_dict(torch.load(partic_sem_model_path, map_location='cpu'))
+# model_partic_sem.to(device_Partic)
+# #####
 
-### Organizer Semantic Categorization ### 
-org_sem_model_path =HOME+"/.pytorch_pretrained_bert/org_sem_cats_128.pt"
-org_sem_label_list=numpy.array(['Militant_Organization', 'Political_Party', 'Chambers_of_Professionals', 'Labor_Union', 'Grassroots_Organization', "No"])
-num_labels_org_sem=len(org_sem_label_list)
-model_org_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_org_sem)
-# model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
-device_Org=torch.device("cuda:{0}".format((int(args.gpu_number_osc))))
-model_org_sem.to(device_Org)
-#####
+# ### Organizer Semantic Categorization ###
+# org_sem_model_path =HOME+"/.pytorch_pretrained_bert/org_sem_cats_128.pt"
+# org_sem_label_list=numpy.array(['Militant_Organization', 'Political_Party', 'Chambers_of_Professionals', 'Labor_Union', 'Grassroots_Organization', "No"])
+# num_labels_org_sem=len(org_sem_label_list)
+# model_org_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_org_sem)
+# # model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
+# device_Org=torch.device("cuda:{0}".format((int(args.gpu_number_osc))))
+# model_org_sem.to(device_Org)
+# #####
 
-### protest classifier #### 
+### protest classifier ####
 model_path_protest_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
 label_list_protest = ["0", "1"]
 num_labels_protest = len(label_list_protest)
@@ -192,9 +146,9 @@ if torch.cuda.is_available():
     if len(gpu_range)==1:
         device=torch.device("cuda:{0}".format(int(gpu_range[0])))
     elif len(gpu_range)>=2:
-                device_ids= [int(x) for x in gpu_range]
-                device=torch.device("cuda:{0}".format(int(device_ids[0])))
-                model_protest = torch.nn.DataParallel(model_protest,device_ids=device_ids,output_device=device, dim=0)
+        device_ids= [int(x) for x in gpu_range]
+        device=torch.device("cuda:{0}".format(int(device_ids[0])))
+        model_protest = torch.nn.DataParallel(model_protest,device_ids=device_ids,output_device=device, dim=0)
     model_protest.to(device)
 else:
     model_protest.load_state_dict(torch.load(model_path_protest_path, map_location='cpu'))

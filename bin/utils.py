@@ -24,8 +24,8 @@ def read_from_json(fpath):
    json_content=""
    with open(fpath, "r", encoding="utf-8",errors='surrogatepass') as f:
         json_content=json.loads(f.readline())
-   return json_content 
-	
+   return json_content
+
 def load_from_json(data):
     data = re.sub(r"\[QUOTE\]", r"'", data)
     #data = re.sub(r'\!', r'!', data)

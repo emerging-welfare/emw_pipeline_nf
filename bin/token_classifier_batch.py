@@ -25,14 +25,12 @@ def request(sentences):
 
 if __name__ == "__main__":
     args = get_args()
-    # jsons = eval(re.sub(r"\[QUOTE\]", r"'", args.data).replace("\'",""))
-    files=args.data.strip("[ ]").split(",") 
+    files=args.data.split()
     jsons = []
     for filename in files:
-        filename=filename.strip("' \n")
-        if filename=="":continue ##
         jsons.append(read_from_json(filename))
-    if len(jsons)!=0:
+
+    if len(jsons)!=0: # TODO : why is this here?
         rtext = request(str([data["sentences"] for data in jsons]))
         all_tokens = rtext["tokens"]
         all_token_labels = rtext["output"]
@@ -42,4 +40,3 @@ if __name__ == "__main__":
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
             #print('"' + change_extension(data["id"], ex=".json") + '"')
             #print(data["id"].replace(".html",".json.json"))
-  
