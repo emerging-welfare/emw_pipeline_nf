@@ -13,7 +13,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='token_classifier_batch.py',
                                      description='Token FLASK BERT Classififer Application ')
-    parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--input_files', help="Input files")
     parser.add_argument('--out_dir', help="output folder")
     args = parser.parse_args()
 
@@ -25,7 +25,7 @@ def request(sentences):
 
 if __name__ == "__main__":
     args = get_args()
-    files=args.data.split()
+    files=args.input_files.strip("[ ]").split(", ")
     jsons = []
     for filename in files:
         jsons.append(read_from_json(filename))

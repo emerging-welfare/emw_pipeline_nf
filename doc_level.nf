@@ -20,9 +20,6 @@ process extract {
        file(filename) from html_channel
    output:
        stdout(out_json) into extract_out
-    when:
-        !params.classifier_first
-
    script:
 	def asd = ".json"
 	def file = new File(params.outdir + filename + ".json")
@@ -42,9 +39,11 @@ process classifier {
     // errorStrategy 'ignore'
     input:
 	val(in_json) from extract_out.collate(params.doc_batchsize)
+    output:
+        stdout(out_json) into classifier_out
     script:
     """
-    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
+    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir
     """
 }
 
@@ -56,10 +55,23 @@ process first_classifier {
     // errorStrategy 'ignore'
     input:
 	file(in_json) from html_channel.collate(params.doc_batchsize)
+    output:
+        stdout(out_json) into classifier_out
     script:
     """
     python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
     """
 }
 
+}
+
+process violent_classifier {
+    // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
+    // errorStrategy 'ignore'
+    input:
+	val(in_json) from classifier_out.flatMap { it.split(" ") }
+    script:
+    """
+    python3 $params.prefix/bin/violent_classifier.py --input_file "$in_json" --out_dir $params.outdir
+    """
 }

@@ -38,7 +38,7 @@ process sent_preprocess {
     """
 }
 
-preprocess_out = preprocess_out.collect { it.split("\\[SPLIT\\]") }.flatten().collate( params.sent_batchsize )
+preprocess_out = preprocess_out.flatMap { it.split("\\[SPLIT\\]") }.collate( params.sent_batchsize )
 
 // This sent_classifier can be where task parallelism happens
 process sent_classifier {

@@ -11,7 +11,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='violent_classifier.py',
                                      description='Violent FLASK Classififer Application ')
-    parser.add_argument('--data', help="Serialized json string")
+    parser.add_argument('--input_file', help="Input file")
     parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
 
@@ -24,23 +24,9 @@ def request(id,text):
 
 if __name__ == "__main__":
     args = get_args()
-    #files = eval(args.data)
-    data =[]
-    with open(args.out_dir+args.data,"r") as f :
-         data=json.loads(f.read())
-    data["violent_label"] = request(id=data["id"],text=data["text"])
-    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
-    
-    #for filename in files:
-    #   with open(args.out_dir + filename, "r", encoding="utf-8") as f:
-    #       jsons.append(json.loads(f.read()))
-    #for i,data in enumerate(jsons):
-    #   data["violent_label"] = request(id=data["id"],text=data["text"])
-    #   write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+    if args.input_file != "": # Might happen when no document in the batch is predicted as positive
+        with open(args.out_dir+args.input_file.strip(), "r", encoding="utf-8") as f:
+             data = json.loads(f.read())
 
-   
-    #rtext = request(str([data["text"] for data in jsons]))
-    #all_texts_labels = rtext["output"]
-    #output_data = list()
-    #for i,data in enumerate(jsons):
-    #    write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+        data["is_violent"] = int(request(id=data["id"],text=data["text"]))
+        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

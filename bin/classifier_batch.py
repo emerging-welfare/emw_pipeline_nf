@@ -58,6 +58,7 @@ if __name__ == "__main__":
 
         out_sentences= event_sentences.pop(0)
         data["sentences"]= out_sentences if len(out_sentences)>0 else []
+
         data["sent_labels"]= [-1] * len(out_sentences)
         data["trigger_semantic"]= [-1] * len(out_sentences)
         data["participant_semantic"]= [-1] * len(out_sentences)
@@ -69,12 +70,10 @@ if __name__ == "__main__":
         else:
             # if a document doesn't have id nor url fields, use the filename as id (i.e. url)
             data["id"] = files[i]
-        #output_data.append(dump_to_json(data))
+
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
-        if (out==1 and args.cascaded) or (not args.cascaded):
-            # if cascaded is on then document label must be 1 in order to the document to pass to the next level.
-            # where if the cascaded option is false that means there will not be any filter apply and all the files should pass to next level.
-            output_data.append(args.out_dir+change_extension(data["id"],".json"))
+        if out == 1:
+            output_data.append(change_extension(data["id"],".json"))
 
     if len(output_data)>0:
-        print(str(output_data))
+        print(" ".join(output_data))
