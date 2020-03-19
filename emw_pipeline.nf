@@ -45,25 +45,14 @@ process classifier {
     output:
         stdout(out_json) into classifier_out
     script:
-    if (!params.classifier_first)
-        if (params.cascaded)
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
-        """
-        else
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
-        """
+    if (params.cascaded)
+    """
+    python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
+    """
     else
-        if (params.cascaded)
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first --cascaded
-        """
-        else
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
-        """
-        
+    """
+    python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
+    """
 }
 
 }
@@ -77,24 +66,14 @@ process first_classifier {
     output:
         stdout(out_json) into classifier_out
     script:
-    if (!params.classifier_first)
-        if (params.cascaded)
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
-        """
-        else
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
-        """
+    if (params.cascaded)
+    """
+    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first --cascaded
+    """
     else
-        if (params.cascaded)
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first --cascaded
-        """
-        else
-        """
-        python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
-        """
+    """
+    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
+    """
         
 }
 
