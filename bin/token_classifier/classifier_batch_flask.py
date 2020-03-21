@@ -11,7 +11,7 @@ from flask import Flask, g
 from flask_restful import Resource, Api, reqparse
 # Create an instance of Flask
 app = Flask(__name__)
-
+import json
 # Create the API
 api = Api(app)
 
@@ -164,6 +164,27 @@ def predict(all_tokens, tokenization_fix=True): # For token models before 2020-0
 
     return all_labels
 
+def get_chunks(sentences):
+    tokenized_sentences = []
+    for sentence in sentences:
+        words = word_tokenize(sentence)
+        tokenized_sentences.append(words)
+
+    chunks, chunk = [], ['SAMPLE_START', ]
+    for i, s in enumerate(tokenized_sentences):
+        if (len(chunk) + 1 + len(s)) >= max_seq_length: # +1 for [SEP] token
+            chunks.append(chunk)
+            chunk = ['SAMPLE_START', ] + s
+        else:
+            if i == 0:
+                chunk += s
+            else:
+                chunk += ['[SEP]', ] + s
+    chunks.append(chunk)
+
+    return chunks
+
+
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
@@ -174,21 +195,23 @@ class queryList(Resource):
 
         args["sentences"] = eval(args["sentences"])
 
-        all_tokens = []
+        chunk_tokens, chunk_sizes = [], []
         for sentences in args["sentences"]:
+            chunks = get_chunks(sentences)
+            chunk_sizes.append(len(chunks))
+            chunk_tokens += chunks
 
-            tokens = ["SAMPLE_START"]
-            for sentence in sentences:
-                words = word_tokenize(sentence)
-                tokens.extend(words)
-                tokens.append("[SEP]")
+        chunk_output = predict(chunk_tokens)
+        
+        i = 0
+        output = []
+        tokens = []
+        for s in chunk_sizes:
+            output.append(sum(chunk_output[i:i+s], []))
+            tokens.append(sum(chunk_tokens[i:i+s], []))
+            i += s
 
-            tokens.pop() # Pop last [SEP]
-
-            all_tokens.append(tokens)
-
-        args["tokens"] = all_tokens
-        output = predict(all_tokens)
+        args["tokens"] = tokens
         args["output"] = output
 
         return args, 201
