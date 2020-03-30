@@ -194,6 +194,7 @@ class queryList(Resource):
         args = parser.parse_args()
 
         args["sentences"] = eval(args["sentences"])
+        batchsize = len(args["sentences"])
 
         chunk_tokens, chunk_sizes = [], []
         for sentences in args["sentences"]:
@@ -201,7 +202,9 @@ class queryList(Resource):
             chunk_sizes.append(len(chunks))
             chunk_tokens += chunks
 
-        chunk_output = predict(chunk_tokens)
+        chunk_output = []
+        for i in range(0, len(chunk_tokens), batchsize):
+            chunk_output += predict(chunk_tokens[i:i+batchsize])
         
         i = 0
         output = []
@@ -250,4 +253,4 @@ model.to(device)
 model.eval()
 
 api.add_resource(queryList, '/queries')
-app.run(host='0.0.0.0', port=4998, debug=True)
+app.run(host='0.0.0.0', port=4998)
