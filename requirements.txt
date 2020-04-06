@@ -22,3 +22,6 @@ scipy==1.3.0
 
 #miscellaneous
 tqdm==4.43.0
+
+# Place Tagger
+flair==0.4.3

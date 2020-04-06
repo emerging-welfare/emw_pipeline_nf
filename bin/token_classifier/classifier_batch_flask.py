@@ -2,16 +2,20 @@ import os
 import numpy
 from pathlib import Path
 import torch
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from pytorch_pretrained_bert.modeling import BertForTokenClassification
 from nltk import word_tokenize
 import argparse
+
+# TODO : Should use a fork of flair that contains only the parts we need.
+import flair
+
+import pytorch_pretrained_bert as fork_bert
+
 # Import the framework
 from flask import Flask, g
 from flask_restful import Resource, Api, reqparse
 # Create an instance of Flask
 app = Flask(__name__)
-
+import json
 # Create the API
 api = Api(app)
 
@@ -164,32 +168,80 @@ def predict(all_tokens, tokenization_fix=True): # For token models before 2020-0
 
     return all_labels
 
+def get_chunks(sentences):
+    tokenized_sentences = []
+    for sentence in sentences:
+        words = word_tokenize(sentence)
+        tokenized_sentences.append(words)
+
+    chunks, chunk = [], ['SAMPLE_START', ]
+    for i, s in enumerate(tokenized_sentences):
+        if (len(chunk) + 1 + len(s)) >= max_seq_length: # +1 for [SEP] token
+            chunks.append(chunk)
+            chunk = ['SAMPLE_START', ] + s
+        else:
+            if i == 0:
+                chunk += s
+            else:
+                chunk += ['[SEP]', ] + s
+    chunks.append(chunk)
+
+    return chunks, tokenized_sentences
+
+
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('sentences', required=True)
         parser.add_argument('tokens', required=False)
         parser.add_argument('output', required=False)
+        parser.add_argument('flair_output', required=False)
         args = parser.parse_args()
 
         args["sentences"] = eval(args["sentences"])
+        # args["sentences"] is a list of documents, which each are a list of sentences
+        batchsize = len(args["sentences"])
 
-        all_tokens = []
+        all_docs_tokenized = [] # list of list of list of tokens
+        chunk_tokens, chunk_sizes = [], []
         for sentences in args["sentences"]:
+            chunks, tokenized_sentences = get_chunks(sentences)
+            all_docs_tokenized.append(tokenized_sentences)
+            chunk_sizes.append(len(chunks))
+            chunk_tokens += chunks
 
-            tokens = ["SAMPLE_START"]
-            for sentence in sentences:
-                words = word_tokenize(sentence)
-                tokens.extend(words)
-                tokens.append("[SEP]")
+        chunk_output = []
+        for i in range(0, len(chunk_tokens), batchsize):
+            chunk_output += predict(chunk_tokens[i:i+batchsize])
 
-            tokens.pop() # Pop last [SEP]
+        i = 0
+        output = []
+        tokens = []
+        for s in chunk_sizes:
+            output.append(sum(chunk_output[i:i+s], []))
+            tokens.append(sum(chunk_tokens[i:i+s], []))
+            i += s
 
-            all_tokens.append(tokens)
+        # Place Tagger
+        # TODO : Too slow! Maybe move to GPU.
+        place_output = []
+        for tokenized_sentences in all_docs_tokenized:
+            doc_sents = [flair.data.Sentence(" ".join(sent_tokens)) for sent_tokens in tokenized_sentences]
+            doc_sents = place_tagger.predict(doc_sents) # Don't know if tagger actually does batching here!
 
-        args["tokens"] = all_tokens
-        output = predict(all_tokens)
+            curr_place_tags = []
+            for sent_id, sent in enumerate(doc_sents):
+                for span in sent.get_spans("ner"):
+                    if span.tag == "LOC":
+                        # Ids are 1-indexed for some reason
+                        idxs = sorted([tok.idx - 1 for tok in span.tokens])
+                        curr_place_tags.append((sent_id, idxs[0], idxs[-1])) # tuple of sent_id, start_idx of span, end_idx of span
+
+            place_output.append(curr_place_tags)
+
+        args["tokens"] = tokens
         args["output"] = output
+        args["flair_output"] = place_output
 
         return args, 201
 
@@ -198,16 +250,17 @@ HOME=os.getenv("HOME")
 model_path = HOME +  "/.pytorch_pretrained_bert/token_model.pt"
 bert_model = HOME +  "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
 bert_vocab = HOME +  "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+FLAIR_CACHE_ROOT = HOME +  "/.pytorch_pretrained_bert"
 
 #device = torch.device("cuda:7")
 
-tokenizer = BertTokenizer.from_pretrained(bert_vocab)
+tokenizer = fork_bert.tokenization.BertTokenizer.from_pretrained(bert_vocab)
 label_list = ["B-etime", "B-fname", "B-organizer", "B-participant", "B-place", "B-target", "B-trigger", "I-etime", "I-fname", "I-organizer", "I-participant", "I-place", "I-target", "I-trigger", "O"]
 label_map = {}
 for (i, label) in enumerate(label_list):
     label_map[i] = label
 
-model = BertForTokenClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=len(label_list))
+model = fork_bert.modeling.BertForTokenClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=len(label_list))
 
 if torch.cuda.is_available():
     model.load_state_dict(torch.load(model_path))
@@ -226,5 +279,11 @@ elif len(gpu_range)>=2:
 model.to(device)
 model.eval()
 
+# Flair model for place names
+flair.device = torch.device("cpu") # Default one is cuda:0
+flair.cache_root = FLAIR_CACHE_ROOT
+place_tagger = flair.models.SequenceTagger.load("ner")
+
+
 api.add_resource(queryList, '/queries')
-app.run(host='0.0.0.0', port=4998, debug=True)
+app.run(host='0.0.0.0', port=4998)

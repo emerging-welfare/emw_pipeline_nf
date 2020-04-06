@@ -43,7 +43,9 @@ echo "Participant Semantic Categorization is installed"
 echo "Installing Organizer Semantic Categorization"
 cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/qft9b81fnkp5tsk/org_sem_cats_128.pt?dl=1" && mv org_sem_cats_128.pt\?dl=1 org_sem_cats_128.pt 
 echo "Installing Organizer Semantic Categorization is installed"
+
+# Flair Place Tagger
+cd ~/.pytorch_pretrained_bert && mkdir models && cd models && wget "https://s3.eu-central-1.amazonaws.com/alan-nlp/resources/models-v0.4/NER-conll03-english/en-ner-conll03-v0.4.pt"
  
 echo "All necessary components are installed"
 cd ..
- #tarih ekle olusturlan dosyalari icin 

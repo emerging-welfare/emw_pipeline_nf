@@ -3,7 +3,6 @@ import numpy
 from pathlib import Path
 import torch
 import argparse
-from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 # Import the framework
 from flask import Flask, g
@@ -87,7 +86,7 @@ class queryList(Resource):
         output_sem = predict(input_ids, input_mask, segment_ids, model_sem, device_trigger)
         output_part_sem = predict(input_ids, input_mask, segment_ids, model_part_sem, device_part)
         output_org_sem = predict(input_ids, input_mask, segment_ids, model_org_sem, device_org)
-        # output_protest = [label_list_protest[lab] for lab in output_protest]
+
         args["output_protest"] = output_protest
         args["trigger_sem"] = output_sem # trigger_sem_label_list[output_sem].tolist()
         args["part_sem"] = output_part_sem # partic_sem_label_list[output_part_sem].tolist()
@@ -109,7 +108,7 @@ trigger_sem_model = HOME+"/.pytorch_pretrained_bert/sem_cats_128.pt"
 num_labels_sem = len(trigger_sem_label_list)
 model_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem)
 
-model_sem.load_state_dict(torch.load(trigger_sem_model))
+model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
 gpu_range = args.gpu_number_tsc.split(",")
 if len(gpu_range) == 1:
     device_trigger = torch.device("cuda:{0}".format(int(gpu_range[0])))
@@ -127,7 +126,7 @@ part_sem_label_list = ['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 's
 num_labels_sem_part = len(part_sem_label_list)
 model_part_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem_part)
 
-model_part_sem.load_state_dict(torch.load(part_sem_model_path))
+model_part_sem.load_state_dict(torch.load(part_sem_model_path, map_location='cpu'))
 gpu_range = args.gpu_number_psc.split(",")
 if len(gpu_range) == 1:
     device_part = torch.device("cuda:{0}".format(int(gpu_range[0])))
@@ -145,7 +144,7 @@ org_sem_label_list = ['Militant_Organization', 'Political_Party', 'Chambers_of_P
 num_labels_org_sem = len(org_sem_label_list)
 model_org_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_org_sem)
 
-model_org_sem.load_state_dict(torch.load(org_sem_model_path))
+model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
 gpu_range = args.gpu_number_osc.split(",")
 if len(gpu_range) == 1:
     device_org = torch.device("cuda:{0}".format(int(gpu_range[0])))
@@ -163,7 +162,7 @@ label_list_protest = ["0", "1"]
 num_labels_protest = len(label_list_protest)
 model_protest = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_protest)
 
-model_protest.load_state_dict(torch.load(model_path_protest_path))
+model_protest.load_state_dict(torch.load(model_path_protest_path, map_location='cpu'))
 gpu_range = args.gpu_number_protest.split(",")
 if len(gpu_range)==1:
     device_protest = torch.device("cuda:{0}".format(int(gpu_range[0])))

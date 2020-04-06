@@ -98,6 +98,7 @@ def main():
         # a counter to get how many files didn't have parsing errors
         files_processed = 0
 
+        # TODO : Handle "flair_output" here -> Each instance in list is a tuple of sent_id, start_idx of place span, end_idx of place span
         for filename in tqdm.tqdm(files):
             try:
                 corerefence_sentences = []

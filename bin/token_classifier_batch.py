@@ -34,9 +34,11 @@ if __name__ == "__main__":
         rtext = request(str([data["sentences"] for data in jsons]))
         all_tokens = rtext["tokens"]
         all_token_labels = rtext["output"]
+        all_flair_outputs = rtext["flair_output"]
         for i,data in enumerate(jsons):
             data["tokens"] = all_tokens[i]
             data["token_labels"] = all_token_labels[i]
+            data["flair_output"] = all_flair_outputs[i]
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
             #print('"' + change_extension(data["id"], ex=".json") + '"')
             #print(data["id"].replace(".html",".json.json"))
