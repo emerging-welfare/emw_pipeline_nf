@@ -50,7 +50,6 @@ sleep 1
 # TODO : sent level task paralellism
 # TODO : In current version, all sentences go through semantic stuff. Should only the positive sentences go through them? If yes, how?
 # TODO : we give list of filenames to classifier_batch and token_classifier_batch, but they handle it differently. Why is this the case?
-# TODO : give screens names
 # TODO : In post, change integer labels to actual ones using label lists.
 # TODO : Maybe we can group sentences by "filename" when passing through a channel.
 
@@ -68,8 +67,8 @@ find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' |
 # ******** RUNNING PIPELINE ********
 if [ "$RUN_DOC" = true ] ; then
     echo "******** DOCUMENT LEVEL ********"
-    screen -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
-    screen -dm python $prefix/bin/violent_classifier/classifier_flask.py
+    screen -S doc -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
+    screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
     sleep 30
     nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
     if [ "$doc_finished" = false ] ; then
@@ -83,7 +82,7 @@ fi
 
 if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
-    screen -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+    screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
     sleep 90
     nextflow sent_level.nf -params-file params.json && killall screen &&  sent_finished=true ;
     if [ "$sent_finished" = false ] ; then
@@ -94,7 +93,7 @@ fi
 
 if [ "$RUN_TOK" = true ] ; then
     echo "******** TOKEN LEVEL ********"
-    screen -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
+    screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
     sleep 30
     nextflow tok_level.nf -params-file params.json && killall screen &&  tok_finished=true ;
     if [ "$tok_finished" = false ] ; then
