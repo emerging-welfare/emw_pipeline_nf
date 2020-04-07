@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+import groovy.json.JsonSlurper
+
 // println("input path is set to $params.input")
 // println("outdir path is set to $params.outdir")
 // println("source lang is set to $params.source_lang")
@@ -51,5 +53,17 @@ process sent_classifier {
     script:
         """
 	python3 $params.prefix/bin/sent_classifier.py --data '$in_json' --out_dir $params.outdir --input_dir $input_dir
+	"""
+}
+
+sent_out = sent_out.flatMap { it.split("\\[SPLIT\\]") }.groupBy{ it.split(":")[0] }.flatMap{ it.values() }
+// sent_out = sent_out.flatMap { it.split("\\[SPLIT\\]") }.map{ it.split(",") }.groupTuple(by: 0)
+
+process sent_output {
+    input:
+	val(in_json) from sent_out
+    script:
+        """
+	python3 $params.prefix/bin/sent_output.py --data '$in_json' --out_dir $params.outdir --input_dir $input_dir
 	"""
 }

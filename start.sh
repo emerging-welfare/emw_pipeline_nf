@@ -50,8 +50,6 @@ sleep 1
 # TODO : sent level task paralellism
 # TODO : In current version, all sentences go through semantic stuff. Should only the positive sentences go through them? If yes, how?
 # TODO : we give list of filenames to classifier_batch and token_classifier_batch, but they handle it differently. Why is this the case?
-# TODO : In post, change integer labels to actual ones using label lists.
-# TODO : Maybe we can group sentences by "filename" when passing through a channel.
 
 doc_finished=false
 sent_finished=false
@@ -59,7 +57,7 @@ tok_finished=false
 
 # TODO : Find a better regex, do it in one sed
 # TODO : ignoring filenames with "'" character. How do we fix this?
-# If RUN_DOC is true, this file will be empt
+# If RUN_DOC is true, this file will be empty
 rm "$output"positive_filenames.txt # clear out previous run's file if there is any
 echo "filename" >> "$output"positive_filenames.txt
 find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
@@ -67,9 +65,11 @@ find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' |
 # ******** RUNNING PIPELINE ********
 if [ "$RUN_DOC" = true ] ; then
     echo "******** DOCUMENT LEVEL ********"
-    screen -S doc -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
-    screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
-    sleep 30
+    if ! screen -ls | grep -q doc; then
+	screen -S doc -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
+	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
+	sleep 30
+    fi
     nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
     if [ "$doc_finished" = false ] ; then
 	echo "Error occured during Document level. Aborting pipeline!"
@@ -82,8 +82,10 @@ fi
 
 if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
-    screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
-    sleep 90
+    if ! screen -ls | grep -q sent; then
+	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+	sleep 90
+    fi
     nextflow sent_level.nf -params-file params.json && killall screen &&  sent_finished=true ;
     if [ "$sent_finished" = false ] ; then
 	echo "Error occured during Sentence level. Aborting pipeline!"
@@ -93,8 +95,10 @@ fi
 
 if [ "$RUN_TOK" = true ] ; then
     echo "******** TOKEN LEVEL ********"
-    screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
-    sleep 30
+    if ! screen -ls | grep -q tok; then
+	screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
+	sleep 30
+    fi
     nextflow tok_level.nf -params-file params.json && killall screen &&  tok_finished=true ;
     if [ "$tok_finished" = false ] ; then
 	echo "Error occured during Token level. Aborting pipeline!"
