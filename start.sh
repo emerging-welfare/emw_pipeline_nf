@@ -12,7 +12,8 @@ echo "document classifier gpus = $gpu_classifier
     Sentence trigger se gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
-    Token classifier gpus= $gpu_token
+    Token classifier gpus= $gpu_token 
+    Place classifier gpus= $gpu_number_place 
     "
 
 echo "input folder is =$input" >&2
