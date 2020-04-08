@@ -12,23 +12,27 @@ echo "document classifier gpus = $gpu_classifier
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
     Token classifier gpus= $gpu_token 
+    Place classifier gpus= $gpu_number_place 
     "
 screen_number="$(screen -ls | wc -l )" # getting the screen running number  
 
-#TODO, more specific control
-if (( $screen_number == 7 )) ; then
-    echo "flasks are already is running"
-else
-    echo "starting the flask models"
-#    killall screen # 
-    screen -dm python $path_to_repo/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
-    screen -dm python  $path_to_repo/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
-    screen -dm python $path_to_repo/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
-    screen -dm python $path_to_repo/bin/violent_classifier/classifier_flask.py
-    sleep 60
+if ! screen -ls | grep -q doc; then
+    screen -S doc -dm python $path_to_repo/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
 fi
 
-#TODO: add seqential version
+if ! screen -ls | grep -q sent; then
+    screen -S sent -dm python  $path_to_repo/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+fi
+
+if ! screen -ls | grep -q tok; then
+    screen -S tok -dm python $path_to_repo/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place"
+fi
+
+if ! screen -ls | grep -q violent; then
+    screen -S violent -dm python $path_to_repo/bin/violent_classifier/classifier_flask.py
+fi
+
+sleep 60 # TODO : If all screens were here already there is no need for this
 
 echo "input folder is =$input" >&2
 echo "output folder is=$output">&2

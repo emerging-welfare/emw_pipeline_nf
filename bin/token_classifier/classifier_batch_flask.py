@@ -105,7 +105,8 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier_flask.py',
                                      description='Flask Server for Token  Classification')
-    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 7 ",default='7')
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 2 ",default='2')
+    parser.add_argument('--gpu_number_place', help="Insert the gpu count/number. This model only does not work with multiple gpus.",default='7')
     args = parser.parse_args()
 
     return(args)
@@ -280,7 +281,11 @@ model.to(device)
 model.eval()
 
 # Flair model for place names
-flair.device = torch.device("cpu") # Default one is cuda:0
+if args.gpu_number_place == "cpu":
+    flair.device = torch.device("cpu") # Default one is cuda:0
+else:
+    flair.device = torch.device("cuda:" + args.gpu_number_place)
+
 flair.cache_root = FLAIR_CACHE_ROOT
 place_tagger = flair.models.SequenceTagger.load("ner")
 
