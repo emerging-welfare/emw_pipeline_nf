@@ -61,6 +61,8 @@ else {
 process first_classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore'
+    // beforeScript 'echo "Before doc $(date)" >> $HOME/runtimes.txt'
+    // afterScript  'echo "After doc $(date)" >> $HOME/runtimes.txt'
     input:
 	file(in_json) from html_channel.collate(params.doc_batchsize)
     output:
@@ -83,6 +85,8 @@ process first_classifier {
 process sent_classifier {
 //    errorStrategy { try { if (in_json == null || in_json == "N") { return 'ignore' }; in_json = Eval.me(in_json).flatten(); for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.doc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
 //    errorStrategy 'ignore'
+    // beforeScript 'echo "Before sent $(date)" >> $HOME/runtimes.txt'
+    // afterScript  'echo "After sent $(date)" >> $HOME/runtimes.txt'
     input:
         val(in_json) from classifier_out.flatMap { n -> Eval.me(n) }
     output:
@@ -101,6 +105,8 @@ process sent_classifier {
 process token_classifier {
 //    errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.sent").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore' 
+    // beforeScript 'echo "Before tok $(date)" >> $HOME/runtimes.txt'
+    // afterScript  'echo "After tok $(date)" >> $HOME/runtimes.txt'
   input:
         val(in_json) from sent_out.collate(params.token_batchsize)
     script:
