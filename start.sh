@@ -1,3 +1,6 @@
+echo "Starting time"
+date
+
 # ******** PREPERATION ********
 echo "Reading config...." >&2
 source nextflow.conf
@@ -97,7 +100,7 @@ fi
 if [ "$RUN_TOK" = true ] ; then
     echo "******** TOKEN LEVEL ********"
     if ! screen -ls | grep -q tok; then
-	screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token
+	screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place"
 	sleep 30
     fi
     nextflow tok_level.nf -params-file params.json && killall screen &&  tok_finished=true ;
@@ -133,5 +136,8 @@ fi
 
 #find jsons -type f | grep -v "'" | xargs cat >> $out_name_output_file.jsons.json && find work -mindepth 1 -type d | xargs -I {} rm -rf {}
 
-find work -mindepth 1 -type d | xargs -I {} rm -rf {} && rm -r work
-rm -rf .nextflow*
+# find work -mindepth 1 -type d | xargs -I {} rm -rf {} && rm -r work
+# rm -rf .nextflow*
+
+echo "Ending time"
+date
