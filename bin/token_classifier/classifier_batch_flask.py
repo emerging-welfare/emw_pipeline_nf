@@ -194,12 +194,17 @@ class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('sentences', required=True)
+        parser.add_argument('all_pos_idxs', required=True)
+        parser.add_argument('cascaded', type=bool, default=False)
         parser.add_argument('tokens', required=False)
         parser.add_argument('output', required=False)
         parser.add_argument('flair_output', required=False)
         args = parser.parse_args()
 
         args["sentences"] = eval(args["sentences"])
+        all_pos_idxs = eval(args["all_pos_idxs"])
+
+        cascaded = args["cascaded"]
         # args["sentences"] is a list of documents, which each are a list of sentences
         batchsize = len(args["sentences"])
 
@@ -224,22 +229,51 @@ class queryList(Resource):
             i += s
 
         # Place Tagger
-        # TODO : Too slow! Maybe move to GPU.
         place_output = []
-        for tokenized_sentences in all_docs_tokenized:
-            doc_sents = [flair.data.Sentence(" ".join(sent_tokens)) for sent_tokens in tokenized_sentences]
-            doc_sents = place_tagger.predict(doc_sents) # Don't know if tagger actually does batching here!
+        if cascaded:
+            sent_lengths = [len(pos_idxs) for pos_idxs in all_pos_idxs]
+            doc_sents = [flair.data.Sentence(" ".join(sent_tokens)) for tokenized_sentences,pos_idxs in zip(all_docs_tokenized, all_pos_idxs) for idx,sent_tokens in enumerate(tokenized_sentences) if idx in pos_idxs] # select only positive sentences
+        else:
+            sent_lengths = [len(tokenized_sentences) for tokenized_sentences in all_docs_tokenized]
+            doc_sents = [flair.data.Sentence(" ".join(sent_tokens)) for tokenized_sentences in all_docs_tokenized for sent_tokens in tokenized_sentences]
 
-            curr_place_tags = []
-            for sent_id, sent in enumerate(doc_sents):
-                for span in sent.get_spans("ner"):
-                    if span.tag == "LOC":
-                        # Ids are 1-indexed for some reason
-                        idxs = sorted([tok.idx - 1 for tok in span.tokens])
-                        curr_place_tags.append((sent_id, idxs[0], idxs[-1])) # tuple of sent_id, start_idx of span, end_idx of span
+        sent_offsets = [sum(sent_lengths[:idx+1]) for idx in range(len(sent_lengths))] # offsets according to doc lengths
+        doc_sents = place_tagger.predict(doc_sents)
 
-            place_output.append(curr_place_tags)
+        curr_place_tags = []
+        doc_idx = 0
+        for sent_id, sent in enumerate(doc_sents):
+            if sent_id == sent_offsets[doc_idx]:
+                doc_idx += 1
+                place_output.append(curr_place_tags)
+                curr_place_tags = []
+                if cascaded:
+                    while len(all_pos_idxs[doc_idx]) == 0: # In case there are no positive sentences for this doc
+                        place_output.append([])
+                        doc_idx += 1
 
+            if cascaded:
+                sent_id1 = sent_id - sent_offsets[doc_idx]
+            else:
+                sent_id1 = sent_id - sent_offsets[doc_idx-1]
+                
+            for span in sent.get_spans("ner"):
+                if span.tag == "LOC":
+                    # Ids are 1-indexed for some reason
+                    idxs = sorted([tok.idx - 1 for tok in span.tokens])
+                    if cascaded:
+                        to_be_added = (all_pos_idxs[doc_idx][sent_id1], idxs[0], idxs[-1])
+                    else:
+                        to_be_added = (sent_id1, idxs[0], idxs[-1])
+
+                    curr_place_tags.append(to_be_added) # tuple of sent_id, start_idx of span, end_idx of span
+
+        place_output.append(curr_place_tags) # the last one is not caught with our if, so we add it here
+
+        if cascaded:
+            while len(place_output) != len(all_pos_idxs): # In case there are no positive sentences at the last documents
+                place_output.append([])
+            
         args["tokens"] = tokens
         args["output"] = output
         args["flair_output"] = place_output

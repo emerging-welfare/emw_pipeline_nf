@@ -110,6 +110,11 @@ process token_classifier {
   input:
         val(in_json) from sent_out.collate(params.token_batchsize)
     script:
+    if (params.cascaded)
+    """
+    python3 $params.prefix/bin/token_classifier_batch.py --data '$in_json' --out_dir $params.outdir --cascaded
+    """
+    else
     """
     python3 $params.prefix/bin/token_classifier_batch.py --data '$in_json' --out_dir $params.outdir
     """
