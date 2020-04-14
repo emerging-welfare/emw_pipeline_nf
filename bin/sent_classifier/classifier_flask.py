@@ -158,6 +158,7 @@ model_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRE
 device_Trigger=torch.device("cuda:{0}".format((int(args.gpu_number_tsc))))
 model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
 model_sem.to(device_Trigger)
+model_sem.eval()
 ######
 
 ### Participant Semantic Categorization ### 
@@ -168,6 +169,7 @@ model_partic_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTO
 device_Partic=torch.device("cuda:{0}".format((int(args.gpu_number_psc))))
 model_partic_sem.load_state_dict(torch.load(partic_sem_model_path, map_location='cpu'))
 model_partic_sem.to(device_Partic)
+model_partic_sem.eval()
 #####
 
 ### Organizer Semantic Categorization ### 
@@ -178,6 +180,7 @@ model_org_sem= BertForSequenceClassification.from_pretrained(bert_model, PYTORCH
 model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
 device_Org=torch.device("cuda:{0}".format((int(args.gpu_number_osc))))
 model_org_sem.to(device_Org)
+model_org_sem.eval()
 #####
 
 ### protest classifier #### 
@@ -199,6 +202,8 @@ if torch.cuda.is_available():
 else:
     device_protest = torch.device("cpu")
     model_protest.to(device_protest)
+
+model_protest.eval()
 #####
 
 api.add_resource(queryList, '/queries')
