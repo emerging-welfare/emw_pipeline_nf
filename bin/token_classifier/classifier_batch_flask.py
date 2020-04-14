@@ -288,7 +288,7 @@ else:
 
 flair.cache_root = FLAIR_CACHE_ROOT
 place_tagger = flair.models.SequenceTagger.load("ner")
-
+place_tagger.eval()
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4998)

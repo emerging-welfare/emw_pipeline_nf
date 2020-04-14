@@ -118,6 +118,7 @@ elif len(gpu_range) >= 2:
     model_sem = torch.nn.DataParallel(model_sem,device_ids=device_ids,output_device=device_trigger, dim=0)
 
 model_sem.to(device_trigger)
+model_sem.eval()
 # ######
 
 # ### Participant Semantic Categorization ###
@@ -136,6 +137,7 @@ elif len(gpu_range) >= 2:
     model_part_sem = torch.nn.DataParallel(model_part_sem,device_ids=device_ids,output_device=device_part, dim=0)
 
 model_part_sem.to(device_part)
+model_part_sem.eval()
 # #####
 
 # ### Organizer Semantic Categorization ###
@@ -154,6 +156,7 @@ elif len(gpu_range) >= 2:
     model_org_sem = torch.nn.DataParallel(model_org_sem,device_ids=device_ids,output_device=device_part, dim=0)
 
 model_org_sem.to(device_org)
+model_org_sem.eval()
 # #####
 
 ### protest classifier ####
@@ -172,6 +175,7 @@ elif len(gpu_range)>=2:
     model_protest = torch.nn.DataParallel(model_protest,device_ids=device_ids,output_device=device_protest, dim=0)
 
 model_protest.to(device_protest)
+model_protest.eval()
 #####
 
 api.add_resource(queryList, '/queries')

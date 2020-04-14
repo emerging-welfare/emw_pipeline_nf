@@ -189,5 +189,7 @@ else:
     device = torch.device("cpu")
 
 model.to(device)
+model.eval()
+
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=5000, debug=True)
