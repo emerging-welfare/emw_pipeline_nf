@@ -237,13 +237,13 @@ class queryList(Resource):
             sent_lengths = [len(tokenized_sentences) for tokenized_sentences in all_docs_tokenized]
             doc_sents = [flair.data.Sentence(" ".join(sent_tokens)) for tokenized_sentences in all_docs_tokenized for sent_tokens in tokenized_sentences]
 
-        sent_offsets = [sum(sent_lengths[:idx+1]) for idx in range(len(sent_lengths))] # offsets according to doc lengths
+        sent_offsets = [0] + [sum(sent_lengths[:idx+1]) for idx in range(len(sent_lengths))] # offsets according to doc lengths
         doc_sents = place_tagger.predict(doc_sents)
 
         curr_place_tags = []
         doc_idx = 0
         for sent_id, sent in enumerate(doc_sents):
-            if sent_id == sent_offsets[doc_idx]:
+            if sent_id == sent_offsets[doc_idx+1]:
                 doc_idx += 1
                 place_output.append(curr_place_tags)
                 curr_place_tags = []
@@ -252,11 +252,7 @@ class queryList(Resource):
                         place_output.append([])
                         doc_idx += 1
 
-            if cascaded:
-                sent_id1 = sent_id - sent_offsets[doc_idx]
-            else:
-                sent_id1 = sent_id - sent_offsets[doc_idx-1]
-                
+            sent_id1 = sent_id - sent_offsets[doc_idx]
             for span in sent.get_spans("ner"):
                 if span.tag == "LOC":
                     # Ids are 1-indexed for some reason
