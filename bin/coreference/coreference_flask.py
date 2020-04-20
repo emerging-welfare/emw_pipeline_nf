@@ -25,13 +25,13 @@ def prepare_pair(s1, s2, max_length=256):
     """returns input_ids, attention_mask, token_type_ids for set of data ready in BERT/ALBERT format"""
     global tokenizer
 
-    t = tokenizer.encode_plus(s1, 
+    t = tokenizer.encode_plus(s1,
                         text_pair=s2,
                         pad_to_max_length=True,
                         add_special_tokens=True,
                         max_length=max_length,
                         return_tensors='pt')
-    
+
     if "token_type_ids" not in t: t["token_type_ids"] = torch.tensor([[1, 1]])
 
     return t["input_ids"], t["attention_mask"], t["token_type_ids"]
@@ -54,11 +54,11 @@ def predict(self, test_set, batch_size=32):
     test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=batch_size)
 
     self.eval()
-    with torch.no_grad(): 
+    with torch.no_grad():
         preds = []
         for batch in test_dataloader:
             b_input_ids, b_input_mask, b_token_type_ids = tuple(t.to(device) for t in batch)
-            output = self(b_input_ids, 
+            output = self(b_input_ids,
             attention_mask=b_input_mask,
             token_type_ids=b_token_type_ids)
             logits = output[0].detach().cpu()
@@ -73,8 +73,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser(prog='coreference_flask.py',
                                      description='Flask Server for Coreference Resolution')
-    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 2 ",default='2')
-    parser.add_argument('--gpu_number_place', help="Insert the gpu count/number. This model only does not work with multiple gpus.",default='7')
+    parser.add_argument('--gpu_number', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format 0,1,2,5, where 0,1,2,5 gpus will be allocated.\n or just type the number of required gpu, i.e 1 ",default='1')
     args = parser.parse_args()
 
     return(args)
@@ -96,9 +95,9 @@ def cluster(sentences, sentence_no):
         for s in sentence_no:
             if s1 == s or s2 == s:
                 continue
-            p_s1_s = next(p for p in ids if set(p) == set((s1, s)) )               
+            p_s1_s = next(p for p in ids if set(p) == set((s1, s)) )
             p_s2_s = next(p for p in ids if set(p) == set((s2, s)) )
-            if pairs[p_s1_s]["label"] == 1 and pairs[p_s2_s]["label"] == 1:    
+            if pairs[p_s1_s]["label"] == 1 and pairs[p_s2_s]["label"] == 1:
                 pairs[(s1, s2)]["score"] += reward
             elif pairs[p_s1_s]["label"] != pairs[p_s2_s]["label"]:
                 pairs[(s1, s2)]["score"] -= penalty
@@ -130,24 +129,21 @@ def cluster(sentences, sentence_no):
         else:
             cluster_grouped[v] = [k, ]
 
-    return list(cluster_grouped.values()) 
+    return list(cluster_grouped.values())
 
 
 class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('sentences', required=True)
-        parser.add_argument('sentence_no', required=True)
+        parser.add_argument('sentences', required=False, type=str, action='append', default=[])
+        parser.add_argument('sentence_no', required=False, type=int, action='append', default=[])
         parser.add_argument('event_clusters', required=False)
         args = parser.parse_args()
 
-        args["sentences"] = eval(args["sentences"])
-        args["sentence_no"] = eval(args["sentence_no"])
+        sents = args["sentences"]
+        sent_nos = args["sentence_no"]
 
-        event_clusters = []
-        for sents, sent_nos in zip(args["sentences"], args["sentence_no"]):
-            event_clusters.append(cluster(sents, sent_nos))
-        
+        event_clusters = cluster(sents, sent_nos)
         args["event_clusters"] = event_clusters
 
         return args, 201
@@ -161,8 +157,8 @@ args = get_args()
 gpu_range = args.gpu_number.split(",")
 max_length = 256
 
-# Parameters of the clustering algorithm, 
-# these parameters were tuned on the development set. 
+# Parameters of the clustering algorithm,
+# these parameters were tuned on the development set.
 threshold = 0.5
 reward = penalty = 0.1
 clustering_threshold = 0.5
@@ -181,4 +177,4 @@ model.predict = predict.__get__(model)
 model.eval()
 
 api.add_resource(queryList, '/queries')
-app.run(host='0.0.0.0', port=4997)
+app.run(host='0.0.0.0', port=4995)

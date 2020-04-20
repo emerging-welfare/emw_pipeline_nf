@@ -13,6 +13,7 @@ echo "document classifier gpus = $gpu_classifier
     Sentence trigger se gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
+    Sentence coreference gpu= $gpu_coreference
     Token classifier gpus= $gpu_token 
     Place classifier gpus= $gpu_number_place 
     "
@@ -24,6 +25,10 @@ fi
 
 if ! screen -ls | grep -q sent; then
     screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+fi
+
+if ! screen -ls | grep -q coreference; then
+    screen -S coreference -dm python $prefix/bin/coreference/coreference_flask.py --gpu_number $gpu_coreference
 fi
 
 if ! screen -ls | grep -q tok; then

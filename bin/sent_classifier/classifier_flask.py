@@ -99,7 +99,7 @@ def get_args():
     parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default='3')
     parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default='4')
     parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default='5')
-    
+
 
     args = parser.parse_args()
 
@@ -108,7 +108,7 @@ def get_args():
 
 
 def predict(sentences,label_list,model,device):# protest classifier output list
-    all_labels = [] 
+    all_labels = []
     batches = prepare_data(sentences, label_list, max_seq_length, tokenizer)
     for batch in batches:
         input_ids, input_mask, segment_ids = batch
@@ -161,7 +161,7 @@ model_sem.to(device_Trigger)
 model_sem.eval()
 ######
 
-### Participant Semantic Categorization ### 
+### Participant Semantic Categorization ###
 partic_sem_model_path =HOME+"/.pytorch_pretrained_bert/part_sem_cats_128.pt"
 partic_sem_label_list=numpy.array(['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 'siyasetçi', 'profesyonel', 'işçi', 'esnaf/küçük üretici', "No"])
 num_labels_sem_part=len(partic_sem_label_list)
@@ -172,7 +172,7 @@ model_partic_sem.to(device_Partic)
 model_partic_sem.eval()
 #####
 
-### Organizer Semantic Categorization ### 
+### Organizer Semantic Categorization ###
 org_sem_model_path =HOME+"/.pytorch_pretrained_bert/org_sem_cats_128.pt"
 org_sem_label_list=numpy.array(['Militant_Organization', 'Political_Party', 'Chambers_of_Professionals', 'Labor_Union', 'Grassroots_Organization', "No"])
 num_labels_org_sem=len(org_sem_label_list)
@@ -183,7 +183,7 @@ model_org_sem.to(device_Org)
 model_org_sem.eval()
 #####
 
-### protest classifier #### 
+### protest classifier ####
 model_path_protest_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
 label_list_protest = ["0", "1"]
 num_labels_protest = len(label_list_protest)
