@@ -30,12 +30,28 @@ process token_classifier {
   input:
         val(in_json) from json_channel.collate(params.token_batchsize)
     script:
-    if (params.cascaded)
-    """
-    python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
-    """
-    else
-    """
-    python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
-    """
+    if (params.cascaded) {
+	if (params.do_coreference) {
+	"""
+	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded --do_coreference
+	"""
+	}
+	else {
+	"""
+	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
+	"""
+	}
+    }
+    else {
+	if (params.do_coreference) {
+	"""
+	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --do_coreference
+	"""
+	}
+	else {
+	"""
+	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
+	"""
+	}
+    }
 }

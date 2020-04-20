@@ -1,7 +1,7 @@
 import argparse
 import json
 import requests
-from utils import load_from_json
+from utils import load_from_json, write_to_json
 import os
 import math
 from shutil import copyfile
@@ -40,7 +40,6 @@ if __name__ == "__main__":
         org_labels[int(sent_num)] = org_label_list[int(org)]
 
     filename = sent_list[0].strip().split(":")[0]
-
     with open(args.input_dir + filename, "r", encoding="utf-8") as f:
         json_data = json.loads(f.read())
 
@@ -49,5 +48,4 @@ if __name__ == "__main__":
     json_data["participant_semantic"] = part_labels
     json_data["organizer_semantic"] = org_labels
 
-    with open(args.out_dir + filename, "w", encoding="utf-8") as f:
-        f.write(json.dumps(json_data) + "\n")
+    write_to_json(json_data, filename, out_dir=args.out_dir)

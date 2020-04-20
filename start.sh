@@ -15,6 +15,7 @@ echo "document classifier gpus = $gpu_classifier
     Sentence trigger se gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
+    Sentence coreference gpu= $gpu_coreference
     Token classifier gpus= $gpu_token 
     Place classifier gpus= $gpu_number_place 
     "
@@ -36,6 +37,7 @@ echo '{
     "prefix":"'"$prefix"'",
     "extractor_script_path":"'"$extractor_script_path"'",
     "cascaded":'$cascaded',
+    "do_coreference":'$do_coreference',
     "classifier_first":'$classifier_first',
     "sent_batchsize":'$sent_batchsize',
     "RUN_DOC":'$RUN_DOC',
@@ -54,6 +56,7 @@ sleep 1
 # TODO : sent level task paralellism
 # TODO : In current version, all sentences go through semantic stuff. Should only the positive sentences go through them? If yes, how?
 # TODO : we give list of filenames to classifier_batch and token_classifier_batch, but they handle it differently. Why is this the case?
+# TODO : Move coreference to a better place
 
 doc_finished=false
 sent_finished=false
@@ -88,7 +91,7 @@ if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
     if ! screen -ls | grep -q sent; then
 	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
-	sleep 90
+	sleep 60
     fi
     nextflow sent_level.nf -params-file params.json && killall screen &&  sent_finished=true ;
     if [ "$sent_finished" = false ] ; then
@@ -98,7 +101,11 @@ if [ "$RUN_SENT" = true ] ; then
 fi
 
 if [ "$RUN_TOK" = true ] ; then
-    echo "******** TOKEN LEVEL ********"
+    echo "******** TOKEN LEVEL ********"    
+    if $do_coreference && ! screen -ls | grep -q coreference; then
+	screen -S coreference -dm python $prefix/bin/coreference/coreference_flask.py --gpu_number $gpu_coreference
+	# TODO : sleep 15 here?
+    fi
     if ! screen -ls | grep -q tok; then
 	screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place"
 	sleep 30

@@ -15,6 +15,7 @@ def get_args():
                                      description='Token FLASK BERT Classififer Application ')
     parser.add_argument('--input_files', help="Input files")
     parser.add_argument('--cascaded', help="enable cascaded version" ,action="store_true",default=False)
+    parser.add_argument('--do_coreference', help="Output folder", action="store_true",default=False)
     parser.add_argument('--out_dir', help="output folder")
     args = parser.parse_args()
 
@@ -22,6 +23,10 @@ def get_args():
 
 def request(sentences, cascaded, all_pos_idxs):
     r = requests.post(url = "http://localhost:4998/queries", json={'sentences':sentences, 'cascaded':cascaded, 'all_pos_idxs':all_pos_idxs})
+    return json.loads(r.text)
+
+def request_coreference(sentences, pos_sent_nums):
+    r = requests.post(url = "http://localhost:4995/queries", json={'sentences':sentences,'sentence_no':pos_sent_nums})
     return json.loads(r.text)
 
 if __name__ == "__main__":
@@ -32,14 +37,49 @@ if __name__ == "__main__":
         jsons.append(read_from_json(filename))
 
     if len(jsons)!=0: # TODO : why is this here?
+        # Coreference
+        if args.do_coreference:
+            all_event_clusters = []
+            for data in jsons:
+                pos_sent_nums = [i for i,v in enumerate(data["sent_labels"]) if int(v) == 1]
+                if len(pos_sent_nums) > 1: # If we have 0 or 1 pos sentence, we don't need to do coreference.
+                    pos_sentences = [data["sentences"][idx] for idx in pos_sent_nums]
+                    rtext_cor = request_coreference(pos_sentences, pos_sent_nums)
+                    all_event_clusters.append(rtext_cor["event_clusters"])
+                else:
+                    all_event_clusters.append([])
+
+        # if args.do_coreference:
+        #     empties = []
+        #     all_pos_sent_nums = []
+        #     all_pos_sentences = []
+        #     for i,data in enumerate(jsons):
+        #         pos_sent_nums = [i for i,v in enumerate(data["sent_labels"]) if int(v) == 1]
+        #         if len(pos_sent_nums) > 1: # If we have 0 or 1 pos sentence, we don't need to do coreference.
+        #             all_pos_sent_nums.append(pos_sent_nums)
+        #             pos_sentences = [data["sentences"][idx] for idx in pos_sent_nums]
+        #             all_pos_sentences.append(pos_sentences)
+        #         else:
+        #             empties.append(i)
+
+        #     if len(all_pos_sentences) > 0:
+        #         rtext_cor = request_coreference(all_pos_sentences, all_pos_sent_nums)
+        #         all_event_clusters = rtext_cor["event_clusters"]
+
         rtext = request(str([data["sentences"] for data in jsons]), args.cascaded, str([[i for i,sent_label in enumerate(data["sent_labels"]) if sent_label == 1] for data in jsons]))
         all_tokens = rtext["tokens"]
         all_token_labels = rtext["output"]
         all_flair_outputs = rtext["flair_output"]
+        # j = 0
         for i,data in enumerate(jsons):
             data["tokens"] = all_tokens[i]
             data["token_labels"] = all_token_labels[i]
             data["flair_output"] = all_flair_outputs[i]
+            if args.do_coreference and all_event_clusters[i]:
+                data["event_clusters"] = all_event_clusters[i]
+
+            # if args.do_coreference and i not in empties:
+            #     data["event_clusters"] = all_event_clusters[j]
+            #     j += 1
+
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
-            #print('"' + change_extension(data["id"], ex=".json") + '"')
-            #print(data["id"].replace(".html",".json.json"))
