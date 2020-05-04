@@ -57,7 +57,10 @@ It will run the pipeline as illustrated in the flowchart below. Where filtering 
 * Document Models (Protest classifier (BERT) - Violent Classifier (SVM) ) 
 * Sentence Model (Protest classifier (BERT) - Participant Semantic Categorization (BERT), Trigger Semantic Categorization (BERT), and Organizer Semantic Categorization (BERT)- Coreference Model (ALBERT))
 * Token Model(Token Classifier)
+
 ```
+conda create -n ENV_NAME python=3.6
+conda activate ENV_NAME
 cd emw_pipeline_nf
 source install.sh
 ```

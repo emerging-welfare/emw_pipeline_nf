@@ -9,7 +9,7 @@ echo "Nextflow installed"
 #python requirements
 #pip2 install -r requirements2.txt && 
 echo "Installing python requirements"
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 echo "python requirements are installed"
 #Extract & Doc Preprocess Dependencies
 #git clone https://github.com/OsmanMutlu/python-boilerpipe.git && cd python-boilerpipe && python2 setup.py install && cd .. && rm -rf python-boilerpipe
@@ -24,25 +24,42 @@ echo "Installing nltk corpous"
 python3 -c "import nltk;nltk.download('popular', halt_on_error=False)"
 echo "nltk corpous are installed"
 
-#is_violent
 echo "Installing Violent Classifier" 
-cd ~/.pytorch_pretrained_bert && wget https://www.dropbox.com/s/9zp0pgkadk0st8m/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 violent_model.pickle
+
+cd ~/.pytorch_pretrained_bert && wget https://www.dropbox.com/s/74arnky6sr2705a/violent_model.pickle?dl=0 && mv violent_model.pickle?dl=1 violent_model.pickle
+
 echo "Violent Classifier is installed"
 
+
+
 #Trigger Semantic Categorization
+
 echo "Installing Trigger Semantic Categorization"
-cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/ylayuknupfj1cra/sem_cats_128.pt?dl=1" && mv sem_cats_128.pt\?dl=1 sem_cats_128.pt
+
+cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/avd7g4vzcbz4o63/sem_cats_128.pt?dl=0" && mv sem_cats_128.pt\?dl=1 sem_cats_128.pt
+
 echo "Trigger Semantic Categorization is installed"
 
+
+
 #Participant Semantic Categorization
+
 echo "Installing Participant Semantic Categorization"
-cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/frgv24lftlp3lwk/part_sem_cats_128.pt?dl=1" && mv part_sem_cats_128.pt\?dl=1 part_sem_cats_128.pt
+
+cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/13s8p431aj5p2y9/part_sem_cats_128.pt?dl=0" && mv part_sem_cats_128.pt\?dl=1 part_sem_cats_128.pt
+
 echo "Participant Semantic Categorization is installed"
 
+
+
 #Organizer Semantic Categorization
+
 echo "Installing Organizer Semantic Categorization"
-cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/qft9b81fnkp5tsk/org_sem_cats_128.pt?dl=1" && mv org_sem_cats_128.pt\?dl=1 org_sem_cats_128.pt 
+
+cd ~/.pytorch_pretrained_bert &&  wget "https://www.dropbox.com/s/z01n8agtcbmmeyr/org_sem_cats_128.pt?dl=0" && mv org_sem_cats_128.pt\?dl=1 org_sem_cats_128.pt 
+
 echo "Installing Organizer Semantic Categorization is installed"
+
 
 # Flair Place Tagger
 cd ~/.pytorch_pretrained_bert && mkdir models && cd models && wget "https://s3.eu-central-1.amazonaws.com/alan-nlp/resources/models-v0.4/NER-conll03-english/en-ner-conll03-v0.4.pt"

@@ -14,7 +14,7 @@ import logging
 import pdb
 # from coreference_model import coreference_model as cm
 
-logging.basicConfig(filename='/home/madbulattif18/emw_pipeline_nf/out_to_csv.log', filemode='w',
+logging.basicConfig(filename='/home/testuser/emw_pipeline_nf/out_to_csv.log', filemode='w',
                     format='%(asctime)s %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
@@ -194,7 +194,7 @@ def main():
                                             , "targets": " ".join(obj.target_list) if len(obj.target_list) > 0 else ""
                                             ,
                                          "facilities": " ".join(obj.facility_list) if len(obj.facility_list) > 0 else ""
-                                            , "trigger_semantic": data["Trigger_Semantic_label"][i]
+                                            , "trigger_semantic": data["trigger_semantic"][i]
                                             , "participant_semantic": data["participant_semantic"][i]
                                             , "organizer_semantic": data["organizer_semantic"][i]})
 
