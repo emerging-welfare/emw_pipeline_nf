@@ -65,7 +65,7 @@ for elem in glob.glob("new_india/19052020_10k/*.json"):
                 protest_flair_count = protest_flair_count + 1
 
 
-#STATISTICS
+# STATISTICS
 print("Total protest number is " + str(count))
 print("Total protest number without flair_output " + str(protest_flair_count))
 print("Most Frequent Words : ")
