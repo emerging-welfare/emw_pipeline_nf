@@ -103,7 +103,6 @@ for elem in glob.glob("new_india/19052020_10k/*.json"):
                         #print(elem)
 
                         if elem.startswith("I-"+token_feature[1:]):
-                            #print('YESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS')
                             #print(content['id'])
                             token_items.append(content['tokens'][sent_idx][idx+second_index+1])
                         else:
