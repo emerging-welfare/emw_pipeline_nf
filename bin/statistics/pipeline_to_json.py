@@ -32,21 +32,6 @@ def postprocess(data):
     data["tokens"] = all_tokens
     return data
 
-"""
-protest_flair_count = 0
-place_name_list = []
-flair_name_list = []
-count = 0
-empty_list_flair_output = 0
-protest_but_no_place = 0
-protest_but_no_place_list = []
-"""
-
-
-"""
-Dictionary başta eklemek lazım
-öncesindekilerde eklenmemiş olacak
-"""
 
 json_list = []
 token_list_all = []
@@ -141,10 +126,4 @@ for elem in glob.glob("new_india/19052020_10k/*.json"):
     }
 
     
-    
-    tüm   featureları kontrol et yoksa json list append
-    bunun output'undan istatistik
-    json dosyaya yazdır
-    dosyaya tarih ekle
-
 """
