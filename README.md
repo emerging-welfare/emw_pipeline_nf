@@ -57,9 +57,13 @@ It will run the pipeline as illustrated in the flowchart below. Where filtering 
 * Document Models (Protest classifier (BERT) - Violent Classifier (SVM) ) 
 * Sentence Model (Protest classifier (BERT) - Participant Semantic Categorization (BERT), Trigger Semantic Categorization (BERT), and Organizer Semantic Categorization (BERT)- Coreference Model (ALBERT))
 * Token Model(Token Classifier)
+* Change "/PATH/TO/REPO" and ENV_NAME variables accordingly!
 ```
-cd emw_pipeline_nf
-source install.sh
+echo 'PATH="$PATH:/PATH/TO/REPO/bin"'
+conda create -n ENV_NAME python=3.6
+conda activate ENV_NAME
+cd /PATH/TO/REPO
+bash install.sh
 ```
 
 ## Parameters
@@ -210,5 +214,5 @@ Set your parameters in `nextflow.conf` first.
 `start.sh` script will start the FLASK API of classifiers then will format the paramters that are in `nextflow.conf` to a JSON file and run nextflow. After nextflow is done reporting part will be started.
 
 ```
-source start.sh
+bash start.sh
 ```
