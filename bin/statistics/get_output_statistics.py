@@ -153,7 +153,7 @@ file_dict = {
     "most_frequent_place_names": Counter(place_name_list).most_common(80),
     "protest_without_flair_total_protest_ratio": protest_flair_count/count,
     "Protest_but_no_place": protest_but_no_place,
-    "Protest_but_no_lace_protest_ratio": protest_but_no_place/count
+    "Protest_but_no_place_protest_ratio": protest_but_no_place/count
     }
 
 
