@@ -63,11 +63,12 @@ sent_finished=false
 tok_finished=false
 
 # TODO : Find a better regex, do it in one sed
-# TODO : ignoring filenames with "'" character. How do we fix this?
 # If RUN_DOC is true, this file will be empty
 rm "$output"positive_filenames.txt # clear out previous run's file if there is any
 echo "filename" >> "$output"positive_filenames.txt
-find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+# find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+# TODO : Filenames with "'" char can be written in positive_filenames.txt. When reading this in sent_level.nf and tok_level.nf, does this cause problems?
+find $input -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
 
 # ******** RUNNING PIPELINE ********
 if [ "$RUN_DOC" = true ] ; then
@@ -84,7 +85,8 @@ if [ "$RUN_DOC" = true ] ; then
     fi
     rm "$output"positive_filenames.txt
     echo "filename" >> "$output"positive_filenames.txt
-    find $output -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+    # find $output -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+    find $output -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
 fi
 
 if [ "$RUN_SENT" = true ] ; then
