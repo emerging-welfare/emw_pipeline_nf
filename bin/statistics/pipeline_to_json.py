@@ -129,6 +129,7 @@ for elem in glob.glob("new_india/04072020_all/*.json"):
 
 print(excp_count)
 
+
 """
     {
         document : {
