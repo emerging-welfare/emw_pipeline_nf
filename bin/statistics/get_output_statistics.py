@@ -77,8 +77,6 @@ nf2
 """
 
 
-
-
 for elem in glob.glob(input_folder+"*json"):
     with open(elem) as f:
         content = json.loads(f.read())
