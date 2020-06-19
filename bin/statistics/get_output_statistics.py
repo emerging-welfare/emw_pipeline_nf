@@ -140,7 +140,6 @@ print("Protest but no place " + str(protest_but_no_place))
 print("Protest but no place protest ratio" + str(protest_but_no_place/count))
 print(protest_but_no_place_list)
 
-
 file_dict = {
     "total_document" : count,
     "protest_without_flair": protest_flair_count,
