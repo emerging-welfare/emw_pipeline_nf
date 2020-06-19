@@ -3,8 +3,8 @@ from collections import Counter
 import argparse
 
 parser = argparse.ArgumentParser(description='Text')
-parser.add_argument('input', type=str, help='Pipeline to json table')
-parser.add_argument('type', type=str, help='file type')
+parser.add_argument('--input', type=str, help='Pipeline to json table')
+parser.add_argument('--type', type=str, help='file type')
 
 
 args = parser.parse_args()
@@ -22,8 +22,7 @@ def protest_count(content):
             count = count + 1
     return count
 
-
-def count_tokens(content):
+def count_tokens(content, all_token):
     count_json = {}
     tokens = list(json.loads(str(content[0]))['document']['sentences'][0].keys())
     tokens.remove('sentence')
@@ -40,8 +39,8 @@ def count_tokens(content):
                 else:
                     for item in sentence[elem]:
                         count_json[elem].append(item)
-    for elem in count_json.keys():
-        count_json[elem] = Counter(count_json[elem]).most_common(10)
+        for elem in count_json.keys():
+            count_json[elem] = Counter(count_json[elem]).most_common(10)
     return count_json
 
 def protest_with_place(content):
@@ -79,7 +78,6 @@ def protest_with_flair(content):
 
     
 
-
 with open(input_folder, "r") as f:
     content = f.readlines()
 
@@ -103,7 +101,7 @@ file_dict = {
     "protest_with_place": protest_with_place(content),
     "protest_with_flair_total_protest_ratio": protest_with_flair(content)/protest_count(content),
     "protest_with_place_total_protest_ratio": protest_with_place(content)/protest_count(content),
-    "frequency of tokens ": count_tokens(content)
+    "frequency of tokens ": count_tokens(content, "most_common")
 
     }
 
@@ -117,63 +115,3 @@ if file_type == "csv":
 else:
     with open('mycsvfile.json', 'w') as fp:
         json.dump(file_dict, fp)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
