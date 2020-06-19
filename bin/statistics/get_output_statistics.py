@@ -9,6 +9,9 @@ import json
 import argparse
 
 
+
+
+
 parser = argparse.ArgumentParser(description='Text')
 parser.add_argument('input', type=str, help='Input files should be nextflow output')
 parser.add_argument('tag', type=str, help='Tag')
@@ -136,15 +139,6 @@ print("Protest with flair output total protest file ratio " + str(1-(protest_fla
 print("Protest but no place " + str(protest_but_no_place))
 print("Protest but no place protest ratio" + str(protest_but_no_place/count))
 print(protest_but_no_place_list)
-
-
-
-
-
-"""
-Her document için id 
-doc sentences [[B-place, I-place], []]
-"""
 
 
 file_dict = {
