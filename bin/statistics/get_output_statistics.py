@@ -16,7 +16,6 @@ parser.add_argument('input', type=str, help='Input files should be nextflow outp
 parser.add_argument('tag', type=str, help='Tag')
 parser.add_argument('type', type=str, help='file type')
 
-
 args = parser.parse_args()
 input_folder = args.input
 tag = args.tag
