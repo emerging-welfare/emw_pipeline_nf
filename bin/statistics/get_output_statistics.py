@@ -76,9 +76,7 @@ nf2
 
 """
 
-"""
-new_india/19052020_10k/*.json
-"""
+
 for elem in glob.glob(input_folder+"*json"):
     with open(elem) as f:
         content = json.loads(f.read())
