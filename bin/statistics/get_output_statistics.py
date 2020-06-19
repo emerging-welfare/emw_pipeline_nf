@@ -5,7 +5,6 @@ import csv
 import json
 
 
-# videos.py
 import argparse
 
 
@@ -130,9 +129,6 @@ print("Total protest number without flair_output " + str(protest_flair_count))
 print("Most Frequent Place Names : ")
 print(Counter(place_name_list).most_common(80))
 print("Protest without flair output total protest file ratio " + str(protest_flair_count/count))
-
-
-
 
 print(flair_name_list)
 print("Protest with flair output total protest file ratio " + str(1-(protest_flair_count/count)))
