@@ -120,6 +120,8 @@ for elem in glob.glob(input_folder+"*json"):
                 print("There is no flair output")
                 protest_flair_count = protest_flair_count + 1
 
+#STATISTICS
+#PLACE NAME
 print("Total protest number is " + str(count))
 print("Total protest number without flair_output " + str(protest_flair_count))
 print("Most Frequent Place Names : ")
