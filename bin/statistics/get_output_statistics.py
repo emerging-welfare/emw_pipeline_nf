@@ -150,8 +150,6 @@ file_dict = {
     "Protest_but_no_place_protest_ratio": protest_but_no_place/count
     }
 
-
-
 if file_type == "csv":
     with open('mycsvfile.csv', 'w') as f:  # Just use 'w' mode in 3.x
         w = csv.DictWriter(f, file_dict.keys())
