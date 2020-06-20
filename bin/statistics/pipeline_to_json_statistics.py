@@ -1,10 +1,11 @@
 import json
 from collections import Counter
 import argparse
+import csv
 
 parser = argparse.ArgumentParser(description='Text')
 parser.add_argument('--input', type=str, help='Pipeline to json table')
-parser.add_argument('--type', type=str, help='file type')
+parser.add_argument('--type', type=str, help='output file type')
 
 
 args = parser.parse_args()
@@ -22,7 +23,7 @@ def protest_count(content):
             count = count + 1
     return count
 
-def count_tokens(content, all_token):
+def count_tokens(content):
     count_json = {}
     tokens = list(json.loads(str(content[0]))['document']['sentences'][0].keys())
     tokens.remove('sentence')
@@ -69,8 +70,6 @@ def protest_with_flair(content):
                 count = count + 1
     return count
 
-
-
 #def protest_without_place_flair():
 
 
@@ -101,7 +100,7 @@ file_dict = {
     "protest_with_place": protest_with_place(content),
     "protest_with_flair_total_protest_ratio": protest_with_flair(content)/protest_count(content),
     "protest_with_place_total_protest_ratio": protest_with_place(content)/protest_count(content),
-    "frequency of tokens ": count_tokens(content, "most_common")
+    "frequency of tokens ": count_tokens(content)
 
     }
 

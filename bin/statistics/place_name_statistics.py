@@ -51,7 +51,10 @@ def token_province_ratio(tokens, tag):
         if elem in states:
             b_place_count = b_place_count + 1
 
+    print("Place Count : ")
+    print(b_place_count)
 
+    print("Place Count to all provinces ratio :")
     print(b_place_count/len(tokens[tag]))
 
     state_count = 0
@@ -59,12 +62,19 @@ def token_province_ratio(tokens, tag):
         if elem in tokens[tag]:
             state_count = state_count + 1
 
+
+
+
+    print("Provinces count which are in the places")
+    print(state_count)
+
+    print("Provinces count to all provinces : ")
     print(state_count/len(states))
 
 
 
 
-
+# Country
 
 token_province_ratio(tokens, "B-place")
 token_province_ratio(tokens, "flair")
