@@ -5,15 +5,16 @@ import csv
 import json
 
 
-# videos.py
 import argparse
+
+
+
 
 
 parser = argparse.ArgumentParser(description='Text')
 parser.add_argument('input', type=str, help='Input files should be nextflow output')
 parser.add_argument('tag', type=str, help='Tag')
 parser.add_argument('type', type=str, help='file type')
-
 
 args = parser.parse_args()
 input_folder = args.input
@@ -75,9 +76,7 @@ nf2
 
 """
 
-"""
-new_india/19052020_10k/*.json
-"""
+
 for elem in glob.glob(input_folder+"*json"):
     with open(elem) as f:
         content = json.loads(f.read())
@@ -121,31 +120,17 @@ for elem in glob.glob(input_folder+"*json"):
                 print("There is no flair output")
                 protest_flair_count = protest_flair_count + 1
 
-# STATISTICS
 print("Total protest number is " + str(count))
 print("Total protest number without flair_output " + str(protest_flair_count))
 print("Most Frequent Place Names : ")
 print(Counter(place_name_list).most_common(80))
 print("Protest without flair output total protest file ratio " + str(protest_flair_count/count))
 
-
-
-
 print(flair_name_list)
 print("Protest with flair output total protest file ratio " + str(1-(protest_flair_count/count)))
 print("Protest but no place " + str(protest_but_no_place))
 print("Protest but no place protest ratio" + str(protest_but_no_place/count))
 print(protest_but_no_place_list)
-
-
-
-
-
-"""
-Her document için id 
-doc sentences [[B-place, I-place], []]
-"""
-
 
 file_dict = {
     "total_document" : count,
@@ -155,8 +140,6 @@ file_dict = {
     "Protest_but_no_place": protest_but_no_place,
     "Protest_but_no_place_protest_ratio": protest_but_no_place/count
     }
-
-
 
 if file_type == "csv":
     with open('mycsvfile.csv', 'w') as f:  # Just use 'w' mode in 3.x

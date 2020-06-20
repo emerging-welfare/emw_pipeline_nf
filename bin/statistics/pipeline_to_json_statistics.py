@@ -1,10 +1,11 @@
 import json
 from collections import Counter
 import argparse
+import csv
 
 parser = argparse.ArgumentParser(description='Text')
-parser.add_argument('input', type=str, help='Pipeline to json table')
-parser.add_argument('type', type=str, help='file type')
+parser.add_argument('--input', type=str, help='Pipeline to json table')
+parser.add_argument('--type', type=str, help='output file type')
 
 
 args = parser.parse_args()
@@ -21,7 +22,6 @@ def protest_count(content):
         if data['document']['doc_label'] == 1:
             count = count + 1
     return count
-
 
 def count_tokens(content):
     count_json = {}
@@ -40,8 +40,8 @@ def count_tokens(content):
                 else:
                     for item in sentence[elem]:
                         count_json[elem].append(item)
-    for elem in count_json.keys():
-        count_json[elem] = Counter(count_json[elem]).most_common(10)
+        for elem in count_json.keys():
+            count_json[elem] = Counter(count_json[elem]).most_common(10)
     return count_json
 
 def protest_with_place(content):
@@ -70,15 +70,12 @@ def protest_with_flair(content):
                 count = count + 1
     return count
 
-
-
 #def protest_without_place_flair():
 
 
 
 
     
-
 
 with open(input_folder, "r") as f:
     content = f.readlines()
@@ -117,63 +114,3 @@ if file_type == "csv":
 else:
     with open('mycsvfile.json', 'w') as fp:
         json.dump(file_dict, fp)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

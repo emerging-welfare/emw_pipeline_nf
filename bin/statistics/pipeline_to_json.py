@@ -4,6 +4,11 @@ from collections import Counter
 import csv
 import json
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Text')
+parser.add_argument('--input', type=str, help='Pipeline output file')
+
 def postprocess(data):
     all_tokens = []
     # sent_count = 0
