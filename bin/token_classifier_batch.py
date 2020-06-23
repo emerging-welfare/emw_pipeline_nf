@@ -21,9 +21,24 @@ def get_args():
 
     return(args)
 
-def request(sentences, cascaded, all_pos_idxs):
-    r = requests.post(url = "http://localhost:4998/queries", json={'sentences':sentences, 'cascaded':cascaded, 'all_pos_idxs':all_pos_idxs})
-    return json.loads(r.text)
+def request(sentences, cascaded, all_pos_idxs, doc_ids):
+    try:
+        r = requests.post(url = "http://localhost:4998/queries", json={'sentences':sentences, 'cascaded':cascaded, 'all_pos_idxs':all_pos_idxs}, timeout=600) # 10 min timeout
+        return json.loads(r.text)
+    except requests.exceptions.Timeout as e:
+        print("Timeout : %s" %doc_ids)
+        data = {}
+        data["tokens"] = ["Timeout" for s in sentences]
+        data["output"] = ["Timeout" for s in sentences]
+        data["flair_output"] = ["Timeout" for s in sentences]
+        return data
+    except:
+        print("Error : %s" %doc_ids)
+        data = {}
+        data["tokens"] = ["Error" for s in sentences]
+        data["output"] = ["Error" for s in sentences]
+        data["flair_output"] = ["Error" for s in sentences]
+        return data
 
 def request_coreference(sentences, pos_sent_nums):
     r = requests.post(url = "http://localhost:4995/queries", json={'sentences':sentences,'sentence_no':pos_sent_nums})
@@ -66,7 +81,7 @@ if __name__ == "__main__":
         #         rtext_cor = request_coreference(all_pos_sentences, all_pos_sent_nums)
         #         all_event_clusters = rtext_cor["event_clusters"]
 
-        rtext = request(str([data["sentences"] for data in jsons]), args.cascaded, str([[i for i,sent_label in enumerate(data["sent_labels"]) if sent_label == 1] for data in jsons]))
+        rtext = request(str([data["sentences"] for data in jsons]), args.cascaded, str([[i for i,sent_label in enumerate(data["sent_labels"]) if sent_label == 1] for data in jsons]), ", ".join([data["id"] for data in jsons]))
         all_tokens = rtext["tokens"]
         all_token_labels = rtext["output"]
         all_flair_outputs = rtext["flair_output"]
