@@ -3,13 +3,10 @@ import argparse
 import pandas as pd
 
 # TODO : Think about the list of things below!
-#  - Drop the text?
-#  - Drop the sentences?
 #  - Drop all tokens and only keep the predicted ones? -> We would keep each span as a list of words in that span
-#  - Drop negative sentences?
 #  - Instead of a dict for a tag, create one dict and make predictions a three membered tuple that also contains a tag info?
 
-# TODO : Since each doc is independent, find a way to use them simultaneously. We can't load the whole document since it is huge!
+# TODO : Since each doc is independent, find a way to process them simultaneously. We can't load the whole document since it is huge!
 # Possible solution -> chunking : Read some amount of lines and put them into a list. Process this list simultaneously and output the results.
 
 def get_args():
@@ -124,6 +121,8 @@ if __name__ == "__main__":
             data.pop("token_labels")
             data.pop("flair_output")
             data.pop("doc_label")
+            data.pop("text")
+            data.pop("sentences")
 
             out_file.write(json.dumps(data) + "\n")
 
@@ -139,13 +138,11 @@ if __name__ == "__main__":
         trigger_semantic : [-1,"demonst",-1,-1,"demonst","group_clash"],
         participant_semantic : [-1,"halk",-1,-1,"halk","işçi"],
         organizer_semantic : [-1,"Political_Party",-1,-1,"Political_Party","Labor_Union"],
-        sentences : ["A bird flew over Marakesh", "...", ...]
-        text: "..."
         tokens: [["A", "bird", "flew", "over", "Marakesh"], [...], ...]
         trigger: {
-            "1": [(3,3)]
-            "3": [(1,2)] # We don't filter these regarding sent_labels yet.
-            "4": [(4,5), (7,7)]
+            1: [(3,3)] # All spans are exclusive
+            3: [(1,2)] # We don't filter these regarding sent_labels yet.
+            4: [(4,5), (7,7)]
         }
         "participant": {}, # same as trigger
         "organizer": {}, # same as trigger
