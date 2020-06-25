@@ -93,8 +93,8 @@ if __name__ == "__main__":
     args = get_args()
 
     out_file = open(args.out_file, "w", encoding="utf-8")
-    if args.dates_and_place_file != "":
-        dates_and_places = pd.read_csv(dates_and_places_file)
+    if args.dates_and_places_file != "":
+        dates_and_places = pd.read_csv(args.dates_and_places_file)
 
     # Start postprocessing
     with open(args.input_file, "r", encoding="utf-8") as input_file:
@@ -102,7 +102,7 @@ if __name__ == "__main__":
             data = json.loads(line)
 
             # NOTE : These are kept as dicts instead of lists of lists because they are sparse and usually we deal with sentences individually.
-            data["trigger"], data["participant"], data["organizer"], data["target"], data["fname"], data["etime"], data["place"], data["flair"] = (dict(),) * 8
+            data["trigger"], data["participant"], data["organizer"], data["target"], data["fname"], data["etime"], data["place"], data["flair"] = [dict() for _ in range(8)]
             data = postprocess_tokens_and_labels(data)
 
             # Flair output
@@ -112,12 +112,13 @@ if __name__ == "__main__":
                 data["flair"].setdefault(sent_idx, []).append((start_idx, end_idx))
 
             # Date and place from html
-            if args.dates_and_place_file != "":
+            if args.dates_and_places_file != "":
                 curr_url = filename_to_url(data["id"])
                 matches = dates_and_places[dates_and_places.url == curr_url]
                 if len(matches) > 0:
                     data["html_year"], data["html_month"], data["html_day"] = matches.iloc["date"].split("/")
-                    data["html_place"] = matches.iloc["place"]
+                    if matches.iloc["place"] != "":
+                        data["html_place"] = matches.iloc["place"]
 
             # Remove unnecessary keys
             data.pop("token_labels")
