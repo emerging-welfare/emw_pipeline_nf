@@ -1,6 +1,9 @@
 import json
 import argparse
 import pandas as pd
+import sys
+sys.path.append("..")
+from utils import change_extension
 
 # TODO : Think about the list of things below!
 #  - Drop all tokens and only keep the predicted ones? -> We would keep each span as a list of words in that span
@@ -13,15 +16,10 @@ def get_args():
     parser = argparse.ArgumentParser(prog='pipeline_to_json.py')
     parser.add_argument('-i', '--input_file', help="Input file")
     parser.add_argument('-o', '--out_file', help="Output file")
-    parser.add_argument('-d', '--dates_and_places_file', default="" ,help="Dates file. A csv with url, date(YYYY/MM/DD) and place columns")
+    parser.add_argument('-d', '--dates_and_places_file', default="" ,help="Dates file. A csv with filename, date(YYYY/MM/DD) and place columns")
     args = parser.parse_args()
 
     return(args)
-
-def filename_to_url(filename):
-    url = re.sub(r"___?", r"://", filename)
-    url = re.sub(r"_", r"/", url)
-    return url
 
 def postprocess_tokens_and_labels(data):
     """
@@ -92,6 +90,8 @@ if __name__ == "__main__":
     out_file = open(args.out_file, "w", encoding="utf-8")
     if args.dates_and_places_file != "":
         dates_and_places = pd.read_csv(args.dates_and_places_file)
+        dates_and_places.filename = dates_and_places.filename.apply(change_extension)
+        dates_and_places.loc[dates_and_places.place.isna(), "place"] = ""
 
     # Start postprocessing
     with open(args.input_file, "r", encoding="utf-8") as input_file:
@@ -110,12 +110,11 @@ if __name__ == "__main__":
 
             # Date and place from html
             if args.dates_and_places_file != "":
-                curr_url = filename_to_url(data["id"])
-                matches = dates_and_places[dates_and_places.url == curr_url]
+                matches = dates_and_places[dates_and_places.filename == data["id"]]
                 if len(matches) > 0:
-                    data["html_year"], data["html_month"], data["html_day"] = matches.iloc["date"].split("/")
-                    if matches.iloc["place"] != "":
-                        data["html_place"] = matches.iloc["place"]
+                    data["html_year"], data["html_month"], data["html_day"] = matches.date.iloc[0].split("/")
+                    if matches.place.iloc[0] != "":
+                        data["html_place"] = matches.place.iloc[0]
 
             # Remove unnecessary keys
             data.pop("token_labels")

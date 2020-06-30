@@ -11,7 +11,7 @@ def filename_to_url(filename):
 
 def change_extension(filename, ex=""):
     #return re.sub("(\.html?|\.cms|\.ece\d?|\.json|)$", ex, filename)
-    return re.sub(".\w{1,}$",".json",filename)
+    return re.sub("\.\w{1,}$",".json",filename)
 def write_to_json(data, filename, extension=None, out_dir=""):
     if extension is not None:
         filename = change_extension(filename, ex="."+extension)

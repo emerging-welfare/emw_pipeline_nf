@@ -13,6 +13,7 @@ dates_and_places_file="" # a csv file with columns "url","date" (YYYY/MM/DD) and
 show_statistics=false # Whether to show statistics of the output
 out_filename="out.json" # Output json file
 sentence_cascade=false # If true: Negative sentences' token labels are negative
+place_folder="~/geonames/india/"
 
 if [[ -d $input_file_or_folder ]]; then # If folder
     # Merge all positive documents into a single json
@@ -41,11 +42,11 @@ if [[ -d $input_file_or_folder ]]; then # If folder
 fi
 
 
-# TODO : implement this
-# python construct_event_database.py \
-#        --input_file $input_file_or_folder \
-#        --out_file $out_filename \
-#        --sent_cascade $sentence_cascade \
+python construct_event_database.py \
+       --input_file $input_file_or_folder \
+       --out_file $out_filename \
+       --place_folder $place_folder \
+       --sent_cascade $sentence_cascade \
 # TODO : show_statistics option here?
 
 echo "Script Finished!"

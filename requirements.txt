@@ -21,6 +21,7 @@ transformers==2.7.0
 
 #miscellaneous
 tqdm==4.43.0
+geopy==2.0.0
 
 # Place Tagger
 flair==0.4.3
