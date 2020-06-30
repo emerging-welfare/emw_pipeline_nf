@@ -14,7 +14,7 @@ nextflow
 echo "Nextflow installed"
 
 #python requirements
-#pip2 install -r requirements2.txt && 
+#pip2 install -r requirements2.txt &&
 echo "Installing python requirements"
 pip install -r requirements.txt
 echo "python requirements are installed"
@@ -49,9 +49,14 @@ wget "https://www.dropbox.com/s/dnphbaecsvj4ubp/token_model.pt?dl=1" && mv token
 echo "BERT models and OsmanMutlu/pytorch-pretrained-BERT are installed"
 
 #is_violent
-echo "Installing Violent Classifier" 
+echo "Installing Violent Classifier"
 wget https://www.dropbox.com/s/74arnky6sr2705a/violent_model.pickle?dl=1 && mv violent_model.pickle?dl=1 ~/.pytorch_pretrained_bert/violent_model.pickle
 echo "Violent Classifier is installed"
+
+echo "Installing Urban-rural Classifier"
+wget https://www.dropbox.com/s/bphcts6vnzpokks/ruralurbanclassifier?dl=1 && mv ruralurbanclassifier?dl=1 ~/.pytorch_pretrained_bert/rural_model.pickle
+echo "Urban-rural Classifier is installed"
+
 
 #Trigger Semantic Categorization
 echo "Installing Trigger Semantic Categorization"
@@ -65,10 +70,10 @@ echo "Participant Semantic Categorization is installed"
 
 #Organizer Semantic Categorization
 echo "Installing Organizer Semantic Categorization"
-wget "https://www.dropbox.com/s/z01n8agtcbmmeyr/org_sem_cats_128.pt?dl=1" && mv org_sem_cats_128.pt\?dl=1 ~/.pytorch_pretrained_bert/org_sem_cats_128.pt 
+wget "https://www.dropbox.com/s/z01n8agtcbmmeyr/org_sem_cats_128.pt?dl=1" && mv org_sem_cats_128.pt\?dl=1 ~/.pytorch_pretrained_bert/org_sem_cats_128.pt
 echo "Installing Organizer Semantic Categorization is installed"
 
 # Flair Place Tagger
 mkdir ~/.pytorch_pretrained_bert/models && wget "https://s3.eu-central-1.amazonaws.com/alan-nlp/resources/models-v0.4/NER-conll03-english/en-ner-conll03-v0.4.pt" && mv en-ner-conll03-v0.4.pt ~/.pytorch_pretrained_bert/en-ner-conll03-v0.4.pt
- 
+
 echo "All models are downloaded"

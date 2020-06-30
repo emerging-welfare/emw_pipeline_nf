@@ -28,5 +28,7 @@ if __name__ == "__main__":
         with open(args.out_dir+args.input_file.strip(), "r", encoding="utf-8") as f:
              data = json.loads(f.read())
 
-        data["is_violent"] = int(request(id=data["id"],text=data["text"]))
+        violent, urbanrural = request(id=data["id"],text=data["text"])
+        data["is_violent"] = int(violent)
+        data["urbanrural"] = urbanrural
         write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

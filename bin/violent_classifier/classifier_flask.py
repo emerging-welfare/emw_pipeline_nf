@@ -39,7 +39,7 @@ def index():
 class NLTKPreprocessor(BaseEstimator, TransformerMixin):
     #it loads a variety of corpora and models for use in tokenization.
     #By default the set of english stopwords from NLTK is used, and the WordNetLemmatizer
-    #looks up data from the WordNet lexicon. Note that this takes a noticeable amount of time, 
+    #looks up data from the WordNet lexicon. Note that this takes a noticeable amount of time,
     #and should only be done on instantiation of the transformer.
 
     def __init__(self, stopwords=None, punct=None,
@@ -58,7 +58,7 @@ class NLTKPreprocessor(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return [list(self.tokenize(doc)) for doc in X]
-            
+
         #The tokenize method breaks raw strings into sentences,
         #then breaks those sentences into words and punctuation,
         #and applies a part of speech tag. The token is then normalized:
@@ -96,12 +96,16 @@ class queryList(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('text', required=False, type=str, action='append', default=[])
-        #parser.add_argument('output', required=False)
         args = parser.parse_args()
 
-        #args["is_violent"] = str(model.predict(args["text"])[0])
-        return str(model.predict(args["text"])[0])
-        #return args, 201
+        violent_pred = str(violent_model.predict(args["text"])[0])
+        rural_pred = rural_model.predict(args["text"])[0]
+        if rural_pred == 1:
+            urbanrural = "rural"
+        else:
+            urbanrural = "urban"
+
+        return violent_pred, urbanrural
 
 def identity(arg):
     """
@@ -110,12 +114,14 @@ def identity(arg):
     return arg
 
 
-global model
+global violent_model
 HOME=os.getenv("HOME")
 with open(HOME+"/.pytorch_pretrained_bert/violent_model.pickle", 'rb') as f:
-        model = pickle.load(f)
+    violent_model = pickle.load(f)
+
+global rural_model
+with open(HOME+"/.pytorch_pretrained_bert/rural_model.pickle", 'rb') as f:
+    rural_model = pickle.load(f)
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4996, debug=True)
-
-
