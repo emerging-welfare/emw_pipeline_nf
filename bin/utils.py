@@ -52,10 +52,10 @@ def postprocess(data):
     all_token_labels = []
 
     for i, token in enumerate(data["tokens"]):
-        if token == "SAMPLE_START":
+        if i ==0 and token == "SAMPLE_START":
             token_labels = []
             tokens = []
-        elif token == "[SEP]":
+        elif token in ["[SEP]", "SAMPLE_START"]:
             all_tokens.append(tokens)
             # if data["sent_labels"][sent_count] == 0: # If sentence's label is 0, ignore all predicted tokens and reset them to 'O' tag.
             #     token_labels = ["O"] * len(token_labels)

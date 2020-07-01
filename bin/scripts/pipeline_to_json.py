@@ -43,9 +43,9 @@ def postprocess_tokens_and_labels(data):
     start_idx = 0
     all_tokens = []
     for i, token in enumerate(data["tokens"]):
-        if token == "SAMPLE_START":
+        if i == 0 and token == "SAMPLE_START":
             tokens = []
-        elif token == "[SEP]":
+        elif token in ["[SEP]", "SAMPLE_START"]:
             sent_idx += 1
             j = 0
             prev_token_label = "O"
@@ -81,6 +81,7 @@ def postprocess_tokens_and_labels(data):
 
             j += 1
 
+    all_tokens.append(tokens) # append last sentence
     data["tokens"] = all_tokens
     return data
 
