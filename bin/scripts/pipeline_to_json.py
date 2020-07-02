@@ -122,7 +122,6 @@ if __name__ == "__main__":
             data.pop("flair_output")
             data.pop("doc_label")
             data.pop("text")
-            data.pop("sentences")
 
             out_file.write(json.dumps(data) + "\n")
 

@@ -2,7 +2,6 @@ import json
 import argparse
 from collections import Counter
 from geopy.geocoders import Nominatim
-import ipdb
 
 """
 This script constructs an event database from the given output of the pipeline.
@@ -14,6 +13,13 @@ This process includes:
 # TODO : We are doing coreference in sentence level.
 # So if sent_cascade is not used, then we may not have coreference information for some of the triggers.
 # If it is used we may have sentences where there are no triggers.
+
+# TODO : Do not discard anything, just store them differently. For example;
+# - Create a column named "country" and default it with "India", if foreign
+# name put it there.
+# - If there is no place at all, store it nonetheless with no place name.
+# - If state name, store it nonetheless with no lat and long
+
 
 def get_args():
     '''
@@ -34,8 +40,8 @@ def tsv_to_dict(tsv_filename):
 
     out_dict = {}
     for line in lines[1:]: # first line is header
-        name, latitude, longtitude = line.split("\t")
-        out_dict[name] = (float(latitude), float(longtitude))
+        name, latitude, longitude = line.split("\t")
+        out_dict[name] = (float(latitude), float(longitude))
 
     return out_dict
 
@@ -43,10 +49,11 @@ def get_span(sent_tokens, span):
     return " ".join(sent_tokens[span[0]:span[1]+1]) # spans were exlusive
 
 def get_place_coordinates(place_name):
+    # TODO : At least district level! -> Get a district list with coords.
     global all_processed_place_names, state_name_fail, city_name_success, geopy_success, not_found_fail
     all_processed_place_names += 1
     place_name_lower = place_name.lower()
-    if place_name_lower in state_names:
+    if state_names.get(place_name_lower, "") != "":
         state_name_fail += 1
         return "Error", "Error"
 
@@ -64,20 +71,18 @@ def get_place_coordinates(place_name):
     return "Error", "Error"
 
 def is_foreign_country(place_name):
-    # TODO : make this a dictionary?
-    if place_name.lower() in foreign_places:
+    if foreign_places.get(place_name.lower(), "") != "":
         return True
     return False
 
 
 # GLOBAL STUFF
 event_category_dict = {"demonst": "Demonstration", "arm_mil": "Armed Militancy", "group_clash": "Group Clash", "ind_act": "Industrial Action"}
- # TODO : What to do with "No"?
 organizer_category_dict = {"Grassroots_Organization": "Grassroots Organization", "Political_Party": "Political Party",
                            "Chambers_of_Professionals": "Chambers of Professionals", "Labor_Union": "Labor Union",
-                           "Militant_Organization": "Militant Organization", "No": "N-A"}
+                           "Militant_Organization": "Militant Organization"}
 participant_category_dict = {"halk": "Masses", "militan": "Militant", "aktivist": "Activist",
-                             "köylü": "Peasant", "öğrenci": "Student", "No": "N-A",
+                             "köylü": "Peasant", "öğrenci": "Student",
                              "siyasetçi": "Politician", "profesyonel": "Professional",
                              "işçi": "Proletariat", "esnaf/küçük üretici": "Petty Bourgeoisie"}
 
@@ -97,11 +102,16 @@ geopy_success = 0
 not_found_fail = 0
 
 args = get_args()
-with open(args.place_folder + "/state_names.txt", "r", encoding="utf-8") as f:
-    state_names = f.read().splitlines()
 
+state_names = {}
+with open(args.place_folder + "/state_names.txt", "r", encoding="utf-8") as f:
+    for place in f.read().splitlines():
+        state_names[place] = "1" # placeholder
+
+foreign_places = {}
 with open(args.place_folder + "/foreign_places.txt", "r", encoding="utf-8") as f:
-    foreign_places = f.read().splitlines()
+    for place in f.read().splitlines():
+        foreign_places[place] = "1" # placeholder
 
 city_dict = tsv_to_dict(args.place_folder + "/all_cities.tsv")
 geolocator = Nominatim(user_agent="GLOCON")
@@ -110,10 +120,8 @@ if __name__ == "__main__":
     input_file = open(args.input_file, "r", encoding="utf-8")
     out_file = open(args.out_file, "w", encoding="utf-8")
 
-    # ipdb.set_trace()
     for json_data in input_file:
         json_data = json.loads(json_data)
-        print(json_data["id"])
         clusters = json_data.get("event_clusters", [])
         total_documents += 1
 
@@ -134,10 +142,11 @@ if __name__ == "__main__":
         curr_place_name = ""
         latitude = "Error"
         html_place = json_data.get("html_place", "") # might not exist in data
-        if html_place != "" and not is_foreign_country(html_place):
+        if html_place != "":
+            if is_foreign_country(html_place): # Discard whole document
+                continue
             latitude, longitude = get_place_coordinates(html_place)
             curr_place_name = html_place
-
 
         for cluster in clusters:
             total_events += 1
@@ -168,8 +177,13 @@ if __name__ == "__main__":
 
                 # Semantic stuff
                 trig_sem[json_data["trigger_semantic"][sent_idx]] += 1
-                part_sem[json_data["participant_semantic"][sent_idx]] += 1
-                org_sem[json_data["organizer_semantic"][sent_idx]] += 1
+                part = json_data["participant_semantic"][sent_idx]
+                if part != "No":
+                    part_sem[part] += 1
+
+                org = json_data["organizer_semantic"][sent_idx]
+                if org != "No":
+                    org_sem[org] += 1
 
                 # Other stuff
                 triggers.extend([get_span(sent_tokens, trig) for trig in json_data["trigger"].get(str_sent_idx, [])])
@@ -181,10 +195,12 @@ if __name__ == "__main__":
 
             # Place
             if latitude == "Error": # if html_place failed
+                # Check if any place name we found is from a foreign country. If so, discard this event!
                 if any([is_foreign_country(place_name) for place_name in all_place]):
-                    # TODO : Discard event or whole document?
                     foreign_place_name += 1
-                    continue
+                    continue # Discard event
+                    # break # Discard document -> Not possible, because we already write the previous clusters to output file.
+                    # So the only events we discard are this and the rest of the clusters, not the whole document.
 
                 # We will use the most common place name if it is a place name and it is from target country.
                 for place_name in all_place.most_common():
@@ -216,19 +232,30 @@ if __name__ == "__main__":
 
             # Semantic stuff
             out_json["eventcategory"] = event_category_dict[trig_sem.most_common(1)[0][0]]
-            for j,part in enumerate(part_sem.most_common(4)):
-                out_json["participant" + str(j) + "category"] = participant_category_dict[part[0]]
 
-            for j,org in enumerate(org_sem.most_common(9)):
-                out_json["organizer" + str(j) + "category"] = organizer_category_dict[org[0]]
+            # If there is no sentence predicted with our predefined categories, then this
+            # event's category is "Other"
+            if len(part_sem) == 0:
+                out_json["participant0category"] = "Other"
+            else:
+                for j,part in enumerate(part_sem.most_common(4)):
+                    out_json["participant" + str(j) + "category"] = participant_category_dict[part[0]]
+
+            # If there is no sentence predicted with our predefined categories, then this
+            # event's category is "Other"
+            if len(org_sem) == 0:
+                out_json["organizer0category"] = "Other"
+            else:
+                for j,org in enumerate(org_sem.most_common(9)):
+                    out_json["organizer" + str(j) + "category"] = organizer_category_dict[org[0]]
 
             # Other stuff
-            out_json["triggers"] = "\n".join(triggers)
-            out_json["participants"] = "\n".join(participants)
-            out_json["organizers"] = "\n".join(organizers)
-            out_json["targets"] = "\n".join(targets)
-            out_json["fnames"] = "\n".join(fnames)
-            out_json["etimes"] = "\n".join(etimes)
+            out_json["triggers"] = triggers
+            out_json["participants"] = participants
+            out_json["organizers"] = organizers
+            out_json["targets"] = targets
+            out_json["fnames"] = fnames
+            out_json["etimes"] = etimes
             # TODO : eventethnicity, eventideology
 
             out_file.write(json.dumps(out_json) + "\n")
@@ -247,6 +274,6 @@ print("        %d had no usable place name" %events_with_no_place_name)
 print()
 print("Total number of processed place names with get_coordinates function : %d" %all_processed_place_names)
 print("    %d of these were state names" %state_name_fail)
-print("    %d of these were city names" %city_name_success)
+print("    %d of these were province names" %city_name_success)
 print("    %d of these were decided to be place names in india by geopy" %geopy_success)
 print("    %d of these failed all the way" %not_found_fail)
