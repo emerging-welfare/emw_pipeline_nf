@@ -7,6 +7,11 @@ out_json_folder = sys.argv[2] # with backslash at the end
 
 input_file = open(input_json_file, "r", encoding="utf-8")
 
+# TODO : If we use positive_docs.json in this script:
+# Revert "tokens" field back to its original way. From
+# list of lists to a list, starts with "SAMPLE_START"
+# and sentences are separated with "[SEP]" token.
+
 for line in input_file:
     d = json.loads(line)
     filename = re.sub(r"\.(ece\d?|json|html?|cms|)$", r".json", d["id"])
