@@ -98,14 +98,15 @@ class queryList(Resource):
         parser.add_argument('text', required=False, type=str, action='append', default=[])
         args = parser.parse_args()
 
-        violent_pred = str(violent_model.predict(args["text"])[0])
+        out = {}
+        out["violent"] = str(violent_model.predict(args["text"])[0])
         rural_pred = rural_model.predict(args["text"])[0]
         if rural_pred == 1:
-            urbanrural = "rural"
+            out["urbanrural"] = "rural"
         else:
-            urbanrural = "urban"
+            out["urbanrural"] = "urban"
 
-        return violent_pred, urbanrural
+        return out
 
 def identity(arg):
     """
