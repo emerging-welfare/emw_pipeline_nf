@@ -32,6 +32,8 @@ if [[ -d $input_file_or_folder ]]; then # If folder
     # 	    xargs -0 grep 'doc_label": 1' |
     # 	    sed -r "s/^[^\{]*//g" > positive_docs.json
     # fi
+
+    # !!! WARNING !!! In -name "" part, if you give "*.json" this script does not finish!!! Because we are creating a json and it becomes the input again and creates an infinite loop!
     find $input_file_or_folder -type f -name "http*.json" -print0 |
         xargs -0 grep 'doc_label": 1' |
         sed -r "s/^[^\{]*//g" > $input_file_or_folder/positive_docs.json
