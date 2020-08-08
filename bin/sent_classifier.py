@@ -5,6 +5,7 @@ from utils import load_from_json
 import os
 import math
 from shutil import copyfile
+import re
 
 def get_args():
     '''
@@ -30,6 +31,12 @@ def request_violent(id,text):
 
 if __name__ == "__main__":
     args = get_args()
+    # TODO: Not sure if this removes only empty outputs from previous step. Need to test!
+    args.data = re.sub(",( ,){1,}", ",", args.data) # In case of empty outputs from previous step
+    args.data = re.sub("^\[, ", "[", args.data) # Empty at the start
+    args.data = re.sub(" ,\]$", "]", args.data) # Empty at the end
+    # TODO: Is there a better way to handle this?
+
     jsons=eval(args.data)
 
     rtext = request([" ".join([str(tok) for tok in d["sent_tokens"]]) for d in jsons])

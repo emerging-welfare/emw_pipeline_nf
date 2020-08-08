@@ -34,22 +34,22 @@ if [[ -d $input_file_or_folder ]]; then # If folder
     # fi
 
     # !!! WARNING !!! In -name "" part, if you give "*.json" this script does not finish!!! Because we are creating a json and it becomes the input again and creates an infinite loop!
-    find $input_file_or_folder -type f -name "http*.json" -print0 |
+    find $input_file_or_folder -type f -name "*.json" -print0 |
         xargs -0 grep 'doc_label": 1' |
-        sed -r "s/^[^\{]*//g" > $input_file_or_folder/positive_docs.json
+        sed -r "s/^[^\{]*//g" > positive_docs.json
 
     echo "Merging finished"
 
     echo "Post-processing pipeline output"
     if [[ -f $dates_and_places_file ]]; then
-	python pipeline_to_json.py -i $input_file_or_folder/positive_docs.json -o $input_file_or_folder/positive_docs2.json -d $dates_and_places_file
+	python pipeline_to_json.py -i positive_docs.json -o positive_docs2.json -d $dates_and_places_file
     else
-	python pipeline_to_json.py -i $input_file_or_folder/positive_docs.json -o $input_file_or_folder/positive_docs2.json
+	python pipeline_to_json.py -i positive_docs.json -o positive_docs2.json
     fi
 
     echo "Post-processing finished. Post-processed file's name : positive_docs.json (Keep this! Might be used later)"
-    mv $input_file_or_folder/positive_docs2.json $input_file_or_folder/positive_docs.json
-    input_file_or_folder="$input_file_or_folder/positive_docs.json" # NOTE : You can use this file later to feed into this script.
+    mv positive_docs2.json positive_docs.json
+    input_file_or_folder="positive_docs.json" # NOTE : You can use this file later to feed into this script.
 fi
 
 # echo "Constructing the event database"
