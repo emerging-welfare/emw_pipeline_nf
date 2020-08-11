@@ -20,4 +20,6 @@ pos_jsons/
 *.json
 violent_model.pickle
 *.conf
+bin/scripts/*.txt
+bin/scripts/*.json
 .gitignore
