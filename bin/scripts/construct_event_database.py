@@ -5,6 +5,7 @@ from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from nltk.corpus import stopwords
 import os
+import re
 
 """
 This script constructs an event database from the given output of the pipeline.
@@ -32,6 +33,7 @@ def get_args():
     parser.add_argument('-o', '--out_file', help="Output json file")
     parser.add_argument('-p', '--place_folder', help="A folder that contains state_alternatives.tsv, district_alternatives.tsv, foreign_alternatives.tsv and district_coords_dict.json for target country.")
     parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative", default="false")
+    parser.add_argument('--internal', help="If the output is for internal use only", action='store_true', default=False)
     args = parser.parse_args()
 
     return(args)
@@ -49,6 +51,12 @@ def read_alternatives_tsv(tsv_filename): # returns a dict("alternative_name"->"p
 
 def get_span(sent_tokens, span):
     return " ".join(sent_tokens[span[0]:span[1]+1]) # spans were exlusive
+
+def filename_to_url(filename):
+    url = re.sub("___?", "://", filename)
+    url = re.sub("_", "/", url)
+    url = re.sub("-h6j7k8-", "%", url)
+    return url
 
 def get_coords_from_dict(dist_name, date):
     val = dist_dict[dist_name]
@@ -70,15 +78,14 @@ def get_coords_from_dict(dist_name, date):
 def get_place_coordinates(place_name, date):
     global all_processed_place_names, state_name_fail, dist_name_success, geopy_success, not_found_fail, geopy_dist_name_success, geopy_dist_name_fail, ignore_list_fail
     all_processed_place_names += 1
-    place_name_lower = place_name.lower()
 
     # Ignore list contains stopwords and target country's name
-    if place_name_lower in ignore_list:
+    if place_name in ignore_list:
         ignore_list_fail += 1
         return "Error"
 
     # State names
-    if state_alts.get(place_name_lower, "") != "":
+    if state_alts.get(place_name, "") != "":
         state_name_fail += 1
         return "Error"
 
@@ -87,14 +94,14 @@ def get_place_coordinates(place_name, date):
     #   - Adding a state name to 2001, 2011 and 2019 field would solve this
 
     # District names
-    dist_name = dist_alts.get(place_name_lower, "")
+    dist_name = dist_alts.get(place_name, "")
     if dist_name != "":
         dist_name_success += 1
         coords = get_coords_from_dict(dist_name, date)
         return coords[0], coords[1], dist_name
 
     # GEOPY
-    location = geopy_cache.get(place_name_lower, None) # Try cache first
+    location = geopy_cache.get(place_name, None) # Try cache first
     if location == None: # If name is not in our cache
         try: # Might throw error due to connection
             location = geocode(place_name)
@@ -105,7 +112,7 @@ def get_place_coordinates(place_name, date):
     # if there is a district name in location["adress"], its length is more than 2
     if location != None and location["address"].endswith("India") and len(location["address"].split(", ")) > 2:
         geopy_success += 1
-        geopy_cache[place_name_lower] = location # Add to cache
+        geopy_cache[place_name] = location # Add to cache
         geopy_names = [a.lower().replace(" district", "") for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always India
         for name in geopy_names:
             dist_name = dist_alts.get(name, "")
@@ -121,12 +128,12 @@ def get_place_coordinates(place_name, date):
 
         return location["latitude"], location["longitude"], location["address"]
 
-    not_found_names.append(place_name_lower)
+    not_found_names.append(place_name)
     not_found_fail += 1
     return "Error"
 
 def is_foreign_country(place_name):
-    if foreign_alts.get(place_name.lower(), "") != "":
+    if foreign_alts.get(place_name, "") != "":
         return True
     return False
 
@@ -175,6 +182,7 @@ not_found_names = []
 state_alts = read_alternatives_tsv(args.place_folder + "/state_alternatives.tsv")
 dist_alts = read_alternatives_tsv(args.place_folder + "/district_alternatives.tsv")
 foreign_alts = read_alternatives_tsv(args.place_folder + "/foreign_alternatives.tsv")
+
 # Some list I created before. Does not really represent the extracted place names (except 'india' and maybe nltk stopwords)
 # None of the alternative names that we have is in this list!
 ignore_list = stopwords.words('english') + ['india', '!', '$', '%', '&', "'", "''", "'re", "'s", "'ve", '(', ')', '*', ',', '-', '--', '.', "n't", '...', '00:00', ':', ';', '<', '>', '?', '@', '[', ']', '_', '__', '`', '``', '|', '\x92\x92', '\x97', '–', '—', '‘', '’', '“', '”', "'m", "a.m.", '^', '/'] + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
@@ -216,7 +224,7 @@ if __name__ == "__main__":
         curr_place_name = ""
         latitude = 0.0
         geopy_lat, geopy_long, geopy_name = 0.0, 0.0, ""
-        html_place = json_data.get("html_place", "") # might not exist in data
+        html_place = json_data.get("html_place", "").lower() # might not exist in data
         if html_place != "":
             if is_foreign_country(html_place): # Discard whole document if foreign name
                 continue
@@ -252,11 +260,11 @@ if __name__ == "__main__":
                 # Place
                 curr_place = json_data["place"].get(str_sent_idx, [])
                 for p in curr_place:
-                    all_place[get_span(sent_tokens, p)] += 1
+                    all_place[get_span(sent_tokens, p).lower()] += 1
 
                 curr_flair = json_data["flair"].get(str_sent_idx, [])
                 for p in curr_flair:
-                    all_place[get_span(sent_tokens, p)] += 1
+                    all_place[get_span(sent_tokens, p).lower()] += 1
 
                 # Semantic stuff
                 trig_sem[json_data["trigger_semantic"][sent_idx]] += 1
@@ -302,16 +310,16 @@ if __name__ == "__main__":
 
                 # No place name was found in our dist_dict or using geopy
                 if latitude == 0.0:
-                    if state_alts.get(html_place.lower(), "") != "":
-                        curr_place_name = state_alts[html_place.lower()]
+                    if state_alts.get(html_place, "") != "":
+                        curr_place_name = state_alts[html_place]
                         latitude = 0.0
                         longitude = 0.0
                     else:
                         no_state_name = True
                         for place_name in all_place.most_common():
-                            if state_alts.get(place_name[0].lower(), "") != "":
+                            if state_alts.get(place_name[0], "") != "":
                                 no_state_name = False
-                                curr_place_name = state_alts[place_name[0].lower()]
+                                curr_place_name = state_alts[place_name[0]]
                                 latitude = 0.0
                                 longitude = 0.0
 
@@ -323,6 +331,16 @@ if __name__ == "__main__":
                                 json_data["no_name_cluster"] = cluster
                                 f.write(json.dumps(json_data) + "\n")
 
+                                # TODO : Also need all of the places for the whole document.
+                                # But doing this would slow the script too much !
+                                # json_to_write = {"no_name_cluster": {"cluster_sent_ids": cluster,
+                                #                                      "cluster_sents": [json_data["sentences"][i] for i in cluster],
+                                #                                      "cluster_places": list(all_place.keys())},
+                                #                  "sent_labels": json_data["sent_labels"],
+                                #                  "all_sentences": json_data["sentences"],
+                                #                  "all_clusters": json_data["event_clusters"]}
+                                # f.write(json.dumps(json_to_write) + "\n")
+
                             continue
 
                         # Write out whole json and which event that we could not find any place for except a state name
@@ -330,6 +348,17 @@ if __name__ == "__main__":
                             json_data["no_name_cluster"] = cluster
                             json_data["state_name"] = curr_place_name
                             f.write(json.dumps(json_data) + "\n")
+
+                            # TODO : Also need all of the places for the whole document.
+                            # But doing this would slow the script too much !
+                            # json_to_write = {"no_name_cluster": {"cluster_sent_ids": cluster,
+                            #                                      "cluster_sents": [json_data["sentences"][i] for i in cluster],
+                            #                                      "cluster_places": list(all_place.keys()),
+                            #                                      "found_state_name": curr_place_name},
+                            #                  "sent_labels": json_data["sent_labels"],
+                            #                  "all_sentences": json_data["sentences"],
+                            #                  "all_clusters": json_data["event_clusters"]}
+                            # f.write(json.dumps(json_to_write) + "\n")
 
                         events_with_state_name += 1
 
@@ -376,8 +405,17 @@ if __name__ == "__main__":
             out_json["participants"] = participants
             out_json["organizers"] = organizers
             out_json["targets"] = targets
-            out_json["fnames"] = fnames
-            out_json["etimes"] = etimes
+
+            out_json["title"] = json_data.get("title", "")
+            out_json["violent"] = "violent" if json_data["is_violent"] == 1 else "non-violent"
+            doc_text = " ".join([sent for sent in json_data["sentences"]])
+            out_json["text_snippet"] = doc_text[:(len(doc_text)//10)] # First tenth of the text
+            out_json["url"] = filename_to_url(json_data["id"])
+
+            if args.internal: # Text are for only internal use only due to copyright issues
+                out_json["doc_text"] = doc_text
+                out_json["event_sentences"] = [json_data["sentences"][i] for i in cluster]
+
             # TODO : eventethnicity, eventideology
 
             out_file.write(json.dumps(out_json) + "\n")
@@ -405,7 +443,7 @@ print()
 print("Total number of processed place names with get_coordinates function : %d" %all_processed_place_names)
 print("    %d of these were ignored (stopwords or 'india')" %ignore_list_fail)
 print("    %d of these were state names" %state_name_fail)
-print("    %d of these were province names" %dist_name_success)
+print("    %d of these were district names" %dist_name_success)
 print("    %d of these were decided to be place names in india by geopy" %geopy_success)
 print("        %d of the returned addresses of geopy were in our district dictionary" %geopy_dist_name_success)
 print("        %d of the returned addresses of geopy were not in our district dictionary" %geopy_dist_name_fail)
