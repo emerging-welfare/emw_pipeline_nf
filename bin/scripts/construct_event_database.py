@@ -34,6 +34,7 @@ def get_args():
     parser.add_argument('-p', '--place_folder', help="A folder that contains state_alternatives.tsv, district_alternatives.tsv, foreign_alternatives.tsv and district_coords_dict.json for target country.")
     parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative", default="false")
     parser.add_argument('--internal', help="If the output is for internal use only", action='store_true', default=False)
+    parser.add_argument('--debug', help="Debug version", action='store_true', default=False)
     args = parser.parse_args()
 
     return(args)
@@ -56,20 +57,23 @@ def filename_to_url(filename):
     url = re.sub("___?", "://", filename)
     url = re.sub("_", "/", url)
     url = re.sub("-h6j7k8-", "%", url)
+    url = re.sub("\.json$", ".ece", url)
     return url
 
 def get_coords_from_dict(dist_name, date):
     val = dist_dict[dist_name]
     if val[date]:
         coords, state_name = val[date]
-    else: # no entry for some reason. TODO : Does this actually happen?
+    else: # no entry for some reason. TODO : Why does this happen?
+        # print("name - date conflict : %s - %s" %(dist_name, date))
+
         if val["2019"]:
             coords, state_name = val["2019"]
         elif val["2011"]:
             coords, state_name = val["2011"]
         elif val["2001"]:
             coords, state_name = val["2001"]
-        else:
+        else: # TODO : Catch this if it happens!
             print("No available coords in dist_dict for  : %s" %dist_name)
             return 0
 
@@ -82,19 +86,21 @@ def get_place_coordinates(place_name, date):
     # Ignore list contains stopwords and target country's name
     if place_name in ignore_list:
         ignore_list_fail += 1
-        return "Error"
+        return "Error", "Ignore List"
 
     # State names
     if state_alts.get(place_name, "") != "":
         state_name_fail += 1
-        return "Error"
+        return "Error", "State Name"
+
+    # NOTE : Coordinates are [X, Y] which is to say [longitude, latitude]
 
     # District names
     dist_name = dist_alts.get(place_name, "")
     if dist_name != "":
         dist_name_success += 1
         coords, state_name = get_coords_from_dict(dist_name, date)
-        return coords[0], coords[1], dist_name, state_name
+        return coords[1], coords[0], dist_name, state_name
 
     # GEOPY
     location = geopy_cache.get(place_name, None) # Try cache first
@@ -115,18 +121,18 @@ def get_place_coordinates(place_name, date):
             if dist_name != "":
                 geopy_dist_name_success += 1
                 coords, state_name = get_coords_from_dict(dist_name, date)
-                return "geopy_success", coords[0], coords[1], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
+                return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
 
         geopy_dist_name_fail += 1
         with open("geopy_outs.txt", "a", encoding="utf-8") as f:
             text_to_write = place_name + "    " + location["address"] + "\n"
             f.write(text_to_write)
 
-        return "geopy_fail", location["latitude"], location["longitude"], location["address"]
+        return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
 
     not_found_names.append(place_name)
     not_found_fail += 1
-    return "Error"
+    return "Error", "Not Found"
 
 def is_foreign_country(place_name):
     if foreign_alts.get(place_name, "") != "":
@@ -188,11 +194,17 @@ geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # limit rate to 1
 if __name__ == "__main__":
     input_file = open(args.input_file, "r", encoding="utf-8")
     out_file = open(args.out_file, "w", encoding="utf-8")
+    if args.debug:
+        debug_file = open(re.sub("\.json$", "_debug.json", args.out_file), "w", encoding="utf-8")
 
     for json_data in input_file:
         json_data = json.loads(json_data)
         clusters = json_data.get("event_clusters", [])
         total_documents += 1
+        if args.debug:
+            debug_data = {}
+            debug_data["url"] = filename_to_url(json_data["id"])
+            debug_data["sentences"] = json_data["sentences"]
 
         # TODO : If sent_cascade == "false", add another for loop going over other sentences and collect information.
         # -> How do we add this info to other events since we won't know which one they belong
@@ -205,47 +217,68 @@ if __name__ == "__main__":
                 one_pos_sent += 1
             else:
                 no_pos_sent += 1
+                if args.debug:
+                    debug_data["pred_clusters"] = []
+                    debug_file.write(json.dumps(debug_data) + "\n")
+
                 continue
 
         # Date of article
         html_year = int(json_data["html_year"]) # must exist in data
         if html_year < 2002:
-            html_year = "2001"
+            census_year = "2001"
         elif html_year > 2001 and html_year < 2012:
-            html_year = "2011"
+            census_year = "2011"
         elif html_year > 2011:
-            html_year = "2019"
+            census_year = "2019"
 
         # Html place
-        curr_place_name = ""
-        curr_state_name = ""
-        latitude = 0.0
-        geopy_lat, geopy_long, geopy_name = 0.0, 0.0, ""
+        html_latitude, html_geopy_lat = 0.0, 0.0
         html_place = json_data.get("html_place", "").lower() # might not exist in data
+
+        if args.debug:
+            debug_data["html_place"] = html_place
+            if html_place == "":
+                debug_data["html_place_status"] = "No Html Place"
+
+            debug_data["pred_clusters"] = clusters
+            debug_clusters = []
+
         if html_place != "":
             if is_foreign_country(html_place): # Discard whole document if foreign name
+                if args.debug:
+                    debug_data["html_place_status"] = "Foreign Html Place"
+                    debug_file.write(json.dumps(debug_data) + "\n")
+
                 continue
 
-            vals = get_place_coordinates(html_place, html_year)
-            if vals == "Error":
+            vals = get_place_coordinates(html_place, census_year)
+            if vals[0] == "Error":
                 returned_place_name = ""
                 returned_state_name = ""
-                pass
-            elif vals[0] == "geopy_success":
-                latitude, longitude, returned_place_name, returned_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
-            elif vals[0] == "geopy_fail":
-                latitude, longitude, returned_place_name = vals[1:]
-                returned_state_name = ""
-            else:
-                latitude, longitude, returned_place_name, returned_state_name = vals
+                if args.debug:
+                    debug_data["html_place_status"] = vals[1] + " Fail"
 
-            curr_place_name = returned_place_name
-            curr_state_name = returned_state_name
+            elif vals[0] == "geopy":
+                html_latitude, html_longitude, returned_place_name, returned_state_name, html_geopy_lat, html_geopy_long, html_geopy_name = vals[1:]
+                if args.debug:
+                    debug_data["html_place_status"] = "Geopy Success"
+
+            else:
+                html_latitude, html_longitude, returned_place_name, returned_state_name = vals
+                if args.debug:
+                    debug_data["html_place_status"] = "Success"
+
+            html_place_name = returned_place_name
+            html_state_name = returned_state_name
 
         for cluster in clusters:
             total_events += 1
-            out_json = {}
 
+            # Reset stuff
+            out_json = {}
+            latitude, longitude, geopy_lat, geopy_long = 0.0, 0.0, 0.0, 0.0
+            curr_place_name, curr_state_name, geopy_name = "", "", ""
             all_place = Counter()
             trig_sem = Counter()
             part_sem = Counter()
@@ -256,6 +289,8 @@ if __name__ == "__main__":
             targets = []
             fnames = []
             etimes = []
+
+            # Gather info
             for sent_idx in cluster:
                 str_sent_idx = str(sent_idx)
                 sent_tokens = json_data["tokens"][sent_idx]
@@ -288,46 +323,53 @@ if __name__ == "__main__":
                 etimes.extend([get_span(sent_tokens, etime) for etime in json_data["etime"].get(str_sent_idx, [])])
 
             # Place
-            if latitude == 0.0: # if html_place failed
+            if html_latitude == 0.0: # if html place failed or was non-existent
                 # Check if any place name we found is from a foreign country. If so, discard this event!
                 if any([is_foreign_country(place_name) for place_name in all_place]):
                     # TODO : Should we really discard this event?
                     foreign_place_name += 1
+
+                    if args.debug:
+                        debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Foreign Place Fail"})
+
                     continue # Discard event
                     # break # Discard document -> Not possible, because we already write the previous clusters to output file.
                     # So the only events we discard are this and the rest of the clusters, not the whole document.
 
                 # We will use the most common place name if it is a place name and it is from target country.
                 for place_name in all_place.most_common():
-                    vals = get_place_coordinates(place_name[0], html_year)
-                    if vals == "Error":
+                    vals = get_place_coordinates(place_name[0], census_year)
+                    if vals[0] == "Error":
                         continue
-                    elif vals[0] == "geopy_success":
+                    elif vals[0] == "geopy":
                         latitude, longitude, returned_place_name, returned_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
-                    elif vals[0] == "geopy_fail":
-                        latitude, longitude, returned_place_name = vals[1:]
-                        returned_state_name = ""
+                        if args.debug:
+                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Geopy Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": geopy_name})
                     else:
                         latitude, longitude, returned_place_name, returned_state_name = vals
+                        if args.debug:
+                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": ""})
 
                     curr_place_name = returned_place_name
                     curr_state_name = returned_state_name
                     break
 
-                # No place name was found in our dist_dict or using geopy, so we try to find any state name.
+                # No place name was found in our dist_dict or using geopy, so we try to find a state name.
                 if latitude == 0.0:
-                    if state_alts.get(html_place, "") != "":
+                    if state_alts.get(html_place, "") != "": # Check in html place
                         curr_state_name = state_alts[html_place]
-                        latitude = 0.0
-                        longitude = 0.0
-                    else:
+                        if args.debug:
+                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name from Html", "geocoding_original_name": html_place, "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+                    else: # Check in extracted places
                         no_state_name = True
                         for place_name in all_place.most_common():
                             if state_alts.get(place_name[0], "") != "":
                                 no_state_name = False
                                 curr_state_name = state_alts[place_name[0]]
-                                latitude = 0.0
-                                longitude = 0.0
+                                if args.debug:
+                                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name", "geocoding_original_name": place_name[0], "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+
+                                break
 
                         if no_state_name:
                             # NOTE : If no place name is found, we discard the event!
@@ -346,6 +388,9 @@ if __name__ == "__main__":
                                 #                  "all_sentences": json_data["sentences"],
                                 #                  "all_clusters": json_data["event_clusters"]}
                                 # f.write(json.dumps(json_to_write) + "\n")
+
+                            if args.debug:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "No Name Fail"})
 
                             continue
 
@@ -370,11 +415,18 @@ if __name__ == "__main__":
 
                 events_with_place_name += 1
 
-            else:
+            else: # If there is an html place
+                latitude, longitude, curr_place_name, curr_state_name = html_latitude, html_longitude, html_place_name, html_state_name
+                if html_geopy_lat != 0.0:
+                    geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
+
+                if args.debug:
+                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success from Html", "geocoding_original_name": html_place, "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name, "geopy_address": geopy_name})
+
                 events_with_html_place += 1
 
             # Place
-            out_json["district_name"] = curr_place_name
+            out_json["district_name"] = curr_place_name # can be empty
             out_json["state_name"] = curr_state_name # can be empty
             out_json["latitude"] = latitude
             out_json["longitude"] = longitude
@@ -383,10 +435,17 @@ if __name__ == "__main__":
                 out_json["specific_longitude"] = geopy_long
                 out_json["specific_place_name"] = geopy_name
 
-            out_json["year"] = json_data["html_year"]
-            out_json["month"] = json_data["html_month"]
-            out_json["day"] = json_data["html_day"]
+            out_json["year"] = int(json_data["html_year"])
+            out_json["month"] = int(json_data["html_month"])
+            out_json["day"] = int(json_data["html_day"])
             out_json["urbanrural"] = json_data["urbanrural"]
+
+            if curr_place_name:
+                out_json["coordinate_dates"] = census_year
+            elif curr_state_name: # there is no district name but there is a state name (no coordinates, so this is empty)
+                out_json["coordinate_dates"] = ""
+            else: # In case of geopy_fail (goes to geopy, but does not take coords from our dictionary)
+                out_json["coordinate_dates"] = "geopy-2.0-2020/08"
 
             # Semantic stuff
             out_json["eventcategory"] = event_category_dict[trig_sem.most_common(1)[0][0]]
@@ -422,11 +481,16 @@ if __name__ == "__main__":
             if args.internal: # Text are for only internal use only due to copyright issues
                 out_json["doc_text"] = doc_text
                 out_json["event_sentences"] = [json_data["sentences"][i] for i in cluster]
-                out_json["event_sentence_ids"] = cluster
+                out_json["event_sentence_numbers"] = [i+1 for i in cluster]
 
             # TODO : eventethnicity, eventideology
 
             out_file.write(json.dumps(out_json) + "\n")
+
+        if args.debug:
+            if debug_clusters:
+                debug_data["clusters_info"] = debug_clusters
+            debug_file.write(json.dumps(debug_data) + "\n")
 
     input_file.close()
     out_file.close()
