@@ -6,7 +6,6 @@ from geopy.extra.rate_limiter import RateLimiter
 from nltk.corpus import stopwords
 import os
 import re
-import ipdb
 
 """
 This script constructs an event database from the given output of the pipeline.
@@ -211,7 +210,6 @@ if __name__ == "__main__":
         # -> How do we add this info to other events since we won't know which one they belong
 
         if clusters == None or len(clusters) == 0: # Happens if there is only one positive sentence or no positive sentence
-            ipdb.set_trace()
             sent_labels = json_data["sent_labels"]
             pos_sents = [i for i in range(len(sent_labels)) if sent_labels[i] == 1]
             if len(pos_sents) > 0:
