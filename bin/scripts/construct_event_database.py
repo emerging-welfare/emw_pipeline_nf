@@ -103,18 +103,20 @@ def get_place_coordinates(place_name, date):
         return coords[1], coords[0], dist_name, state_name
 
     # GEOPY
-    location = geopy_cache.get(place_name, None) # Try cache first
-    if location == None: # If name is not in our cache
+    location = geopy_cache.get(place_name, "") # Try cache first
+    if location == "": # If name is not in our cache
         try: # Might throw error due to connection
             location = geocode(place_name)
-            location = {"latitude": location.latitude, "longitude": location.longitude, "address": location.address}
+            if location != None:
+                location = {"latitude": location.latitude, "longitude": location.longitude, "address": location.address}
         except:
             location = None
+
+        geopy_cache[place_name] = location # Add to cache even if it is None
 
     # if there is a district name in location["adress"], its length is more than 2
     if location != None and location["address"].endswith("India") and len(location["address"].split(", ")) > 2:
         geopy_success += 1
-        geopy_cache[place_name] = location # Add to cache
         geopy_names = [a.lower().replace(" district", "") for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always India
         for name in geopy_names:
             dist_name = dist_alts.get(name, "")
