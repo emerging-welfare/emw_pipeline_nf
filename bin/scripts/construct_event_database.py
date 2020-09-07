@@ -30,7 +30,8 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='construct_event_database.py')
     parser.add_argument('-i', '--input_file', help="Input json file")
-    parser.add_argument('-o', '--out_file', help="Output json file")
+    parser.add_argument('-o', '--out_filename', help="Output json file")
+    parser.add_argument('-f', '--out_folder', help="Output folder")
     parser.add_argument('-p', '--place_folder', help="A folder that contains state_alternatives.tsv, district_alternatives.tsv, foreign_alternatives.tsv and district_coords_dict.json for target country.")
     parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative", default="false")
     parser.add_argument('--internal', help="If the output is for internal use only", action='store_true', default=False)
@@ -115,7 +116,7 @@ def get_place_coordinates(place_name, date):
         geopy_cache[place_name] = location # Add to cache even if it is None
 
     # if there is a district name in location["adress"], its length is more than 2
-    if location != None and location["address"].endswith("India") and len(location["address"].split(", ")) > 2:
+    if location != None and location["address"].lower().endswith("india") and len(location["address"].split(", ")) > 2:
         geopy_success += 1
         geopy_names = [a.lower().replace(" district", "") for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always India
         for name in geopy_names:
@@ -126,7 +127,7 @@ def get_place_coordinates(place_name, date):
                 return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
 
         geopy_dist_name_fail += 1
-        with open("geopy_outs.txt", "a", encoding="utf-8") as f:
+        with open(args.out_folder + "/geopy_outs.txt", "a", encoding="utf-8") as f:
             text_to_write = place_name + "    " + location["address"] + "\n"
             f.write(text_to_write)
 
@@ -195,9 +196,9 @@ geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # limit rate to 1
 
 if __name__ == "__main__":
     input_file = open(args.input_file, "r", encoding="utf-8")
-    out_file = open(args.out_file, "w", encoding="utf-8")
+    out_file = open(args.out_folder + "/" + args.out_filename, "w", encoding="utf-8")
     if args.debug:
-        debug_file = open(re.sub("\.json$", "_debug.json", args.out_file), "w", encoding="utf-8")
+        debug_file = open(args.out_folder + "/" + re.sub("\.json$", "_debug.json", args.out_filename), "w", encoding="utf-8")
 
     for json_data in input_file:
         json_data = json.loads(json_data)
@@ -377,7 +378,7 @@ if __name__ == "__main__":
                             # NOTE : If no place name is found, we discard the event!
                             events_with_no_place_name += 1
                             # Write out whole json and which event that we could not find any place for
-                            with open("nothing_found.json", "a", encoding="utf-8") as f:
+                            with open(args.out_folder + "/nothing_found.json", "a", encoding="utf-8") as f:
                                 json_data["no_name_cluster"] = cluster
                                 f.write(json.dumps(json_data) + "\n")
 
@@ -397,7 +398,7 @@ if __name__ == "__main__":
                             continue
 
                         # Write out whole json and which event that we could not find any place for except a state name
-                        with open("only_state_found.json", "a", encoding="utf-8") as f:
+                        with open(args.out_folder + "/only_state_found.json", "a", encoding="utf-8") as f:
                             json_data["no_name_cluster"] = cluster
                             json_data["state_name"] = curr_state_name
                             f.write(json.dumps(json_data) + "\n")
@@ -501,7 +502,7 @@ if __name__ == "__main__":
     with open(args.place_folder + "/geopy_cache.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(geopy_cache))
 
-    with open("not_found_names.json", "w", encoding="utf-8") as f:
+    with open(args.out_folder + "/not_found_names.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(not_found_names))
 
 print("Out of %d documents processed, %d had no positive sentence and %d had only one positive sentence." %(total_documents, no_pos_sent, one_pos_sent))

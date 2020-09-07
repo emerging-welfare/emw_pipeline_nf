@@ -1,6 +1,9 @@
 from lxml import etree
 import re
 import argparse
+
+import sys
+sys.path.append("..")
 from utils import remove_path
 from utils import write_to_json
 from utils import change_extension

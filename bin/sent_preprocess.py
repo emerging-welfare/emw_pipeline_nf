@@ -30,19 +30,19 @@ def convert_text_to_features(text, max_seq_length, tokenizer):
 if __name__ == "__main__":
     args = get_args()
     # filename = eval(args.input_file)
-    json_data=read_from_json(args.input_file)
-    # if json_data=="":continue
+    if os.path.exists(args.input_file):
+        json_data=read_from_json(args.input_file)
 
-    max_seq_length = 128
-    HOME=os.getenv("HOME")
-    bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
-    tokenizer = BertTokenizer.from_pretrained(bert_vocab)
+        max_seq_length = 128
+        HOME=os.getenv("HOME")
+        bert_vocab = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased-vocab.txt"
+        tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 
-    # TODO: 1000 is a temporary number. Check exactly how many sentences are acceptable before we get "Argument list too long" error
-    if len(json_data["sentences"]) < 1000:
-        # TODO : check for empty json data or no keys
-        sent_tokens = []
-        for sent in json_data["sentences"]:
-            sent_tokens.append(convert_text_to_features(sent, max_seq_length, tokenizer))
+        # TODO: 1000 is a temporary number. Check exactly how many sentences are acceptable before we get "Argument list too long" error
+        if len(json_data["sentences"]) < 1000:
+            # TODO : check for empty json data or no keys
+            sent_tokens = []
+            for sent in json_data["sentences"]:
+                sent_tokens.append(convert_text_to_features(sent, max_seq_length, tokenizer))
 
-        print("[SPLIT]".join([dump_to_json({"filename":args.input_file, "sent_num":i, "sent_tokens":sent_tokens[i]}) for i in range(len(sent_tokens))]))
+            print("[SPLIT]".join([dump_to_json({"filename":args.input_file, "sent_num":i, "sent_tokens":sent_tokens[i]}) for i in range(len(sent_tokens))]))
