@@ -2,6 +2,7 @@ import argparse
 import json
 import requests
 import re
+import os.path
 from utils import write_to_json
 from utils import dump_to_json
 from utils import change_extension
@@ -49,9 +50,10 @@ if __name__ == "__main__":
     files=args.input_files.strip("[ ]").split(", ")
     jsons = []
     for filename in files:
-        curr_json = read_from_json(filename)
-        if curr_json.get("sent_labels", "") != "": # Some of the documents are not processed in sentence level (They have too many sentences)
-            jsons.append(curr_json)
+        if os.path.exists(filename):
+            curr_json = read_from_json(filename)
+            if curr_json.get("sent_labels", "") != "": # Some of the documents are not processed in sentence level (They have too many sentences)
+                jsons.append(curr_json)
 
     if len(jsons)!=0: # TODO : why is this here?
 

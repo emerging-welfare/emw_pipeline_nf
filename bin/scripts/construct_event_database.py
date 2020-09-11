@@ -33,12 +33,29 @@ def get_args():
     parser.add_argument('-o', '--out_filename', help="Output json file")
     parser.add_argument('-f', '--out_folder', help="Output folder")
     parser.add_argument('-p', '--place_folder', help="A folder that contains state_alternatives.tsv, district_alternatives.tsv, foreign_alternatives.tsv and district_coords_dict.json for target country.")
-    parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative", default="false")
-    parser.add_argument('--internal', help="If the output is for internal use only", action='store_true', default=False)
-    parser.add_argument('--debug', help="Debug version", action='store_true', default=False)
+    parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--check_extracted_first', help="When doing geocoding, whether to check for places in extracted places first, rather than html places. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--internal', help="If the output is for internal use only. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
+
     args = parser.parse_args()
+    args = vars(args)
+
+    args["sent_cascade"] = get_args_boolean(args["sent_cascade"])
+    args["check_extracted_first"] = get_args_boolean(args["check_extracted_first"])
+    args["internal"] = get_args_boolean(args["internal"])
+    args["debug"] = get_args_boolean(args["debug"])
 
     return(args)
+
+def get_args_boolean(curr_arg):
+    if curr_arg == "false":
+        return False
+    elif curr_arg == "true":
+        return True
+    else:
+        print('Something wrong with argparse!!!')
+        return -1
 
 def read_alternatives_tsv(tsv_filename): # returns a dict("alternative_name"->"place_name")
     with open(tsv_filename, "r", encoding="utf-8") as f:
@@ -127,7 +144,7 @@ def get_place_coordinates(place_name, date):
                 return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
 
         geopy_dist_name_fail += 1
-        with open(args.out_folder + "/geopy_outs.txt", "a", encoding="utf-8") as f:
+        with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
             text_to_write = place_name + "    " + location["address"] + "\n"
             f.write(text_to_write)
 
@@ -173,38 +190,43 @@ not_found_fail = 0
 
 args = get_args()
 
-if os.path.exists(args.place_folder + "/geopy_cache.json"):
-    with open(args.place_folder + "/geopy_cache.json", "r", encoding="utf-8") as f:
+if os.path.exists(args["place_folder"] + "/geopy_cache.json"):
+    with open(args["place_folder"] + "/geopy_cache.json", "r", encoding="utf-8") as f:
         geopy_cache = json.loads(f.read())
 else:
     geopy_cache = {}
 
 
-with open(args.place_folder + "/district_coords_dict.json", "r", encoding="utf-8") as f:
+with open(args["place_folder"] + "/district_coords_dict.json", "r", encoding="utf-8") as f:
     dist_dict = json.loads(f.read())
 
 not_found_names = []
-state_alts = read_alternatives_tsv(args.place_folder + "/state_alternatives.tsv")
-dist_alts = read_alternatives_tsv(args.place_folder + "/district_alternatives.tsv")
-foreign_alts = read_alternatives_tsv(args.place_folder + "/foreign_alternatives.tsv")
+state_alts = read_alternatives_tsv(args["place_folder"] + "/state_alternatives.tsv")
+dist_alts = read_alternatives_tsv(args["place_folder"] + "/district_alternatives.tsv")
+foreign_alts = read_alternatives_tsv(args["place_folder"] + "/foreign_alternatives.tsv")
+
+# TODO : Might move this ignore_list to geocoding_dictionaries?
+
+# Some names are thought to be places in India by geopy, but these are not really place names
+geopy_false_positives = ["financial"]
 
 # Some list I created before. Does not really represent the extracted place names (except 'india' and maybe nltk stopwords)
 # None of the alternative names that we have is in this list!
-ignore_list = stopwords.words('english') + ['india', '!', '$', '%', '&', "'", "''", "'re", "'s", "'ve", '(', ')', '*', ',', '-', '--', '.', "n't", '...', '00:00', ':', ';', '<', '>', '?', '@', '[', ']', '_', '__', '`', '``', '|', '\x92\x92', '\x97', '–', '—', '‘', '’', '“', '”', "'m", "a.m.", '^', '/'] + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
+ignore_list = stopwords.words('english') + geopy_false_positives + ['india', '!', '$', '%', '&', "'", "''", "'re", "'s", "'ve", '(', ')', '*', ',', '-', '--', '.', "n't", '...', '00:00', ':', ';', '<', '>', '?', '@', '[', ']', '_', '__', '`', '``', '|', '\x92\x92', '\x97', '–', '—', '‘', '’', '“', '”', "'m", "a.m.", '^', '/'] + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
 geolocator = Nominatim(user_agent="GLOCON")
 geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # limit rate to 1 second
 
 if __name__ == "__main__":
-    input_file = open(args.input_file, "r", encoding="utf-8")
-    out_file = open(args.out_folder + "/" + args.out_filename, "w", encoding="utf-8")
-    if args.debug:
-        debug_file = open(args.out_folder + "/" + re.sub("\.json$", "_debug.json", args.out_filename), "w", encoding="utf-8")
+    input_file = open(args["input_file"], "r", encoding="utf-8")
+    out_file = open(args["out_folder"] + "/" + args["out_filename"], "w", encoding="utf-8")
+    if args["debug"]:
+        debug_file = open(args["out_folder"] + "/" + re.sub("\.json$", "_debug.json", args["out_filename"]), "w", encoding="utf-8")
 
     for json_data in input_file:
         json_data = json.loads(json_data)
         clusters = json_data.get("event_clusters", [])
         total_documents += 1
-        if args.debug:
+        if args["debug"]:
             debug_data = {}
             debug_data["url"] = filename_to_url(json_data["id"])
             debug_data["sentences"] = json_data["sentences"]
@@ -220,7 +242,7 @@ if __name__ == "__main__":
                 one_pos_sent += 1
             else:
                 no_pos_sent += 1
-                if args.debug:
+                if args["debug"]:
                     debug_data["pred_clusters"] = []
                     debug_file.write(json.dumps(debug_data) + "\n")
 
@@ -239,7 +261,7 @@ if __name__ == "__main__":
         html_latitude, html_geopy_lat = 0.0, 0.0
         html_place = json_data.get("html_place", "").lower() # might not exist in data
 
-        if args.debug:
+        if args["debug"]:
             debug_data["html_place"] = html_place
             if html_place == "":
                 debug_data["html_place_status"] = "No Html Place"
@@ -249,7 +271,7 @@ if __name__ == "__main__":
 
         if html_place != "":
             if is_foreign_country(html_place): # Discard whole document if foreign name
-                if args.debug:
+                if args["debug"]:
                     debug_data["html_place_status"] = "Foreign Html Place"
                     debug_file.write(json.dumps(debug_data) + "\n")
 
@@ -259,17 +281,17 @@ if __name__ == "__main__":
             if vals[0] == "Error":
                 returned_place_name = ""
                 returned_state_name = ""
-                if args.debug:
+                if args["debug"]:
                     debug_data["html_place_status"] = vals[1] + " Fail"
 
             elif vals[0] == "geopy":
                 html_latitude, html_longitude, returned_place_name, returned_state_name, html_geopy_lat, html_geopy_long, html_geopy_name = vals[1:]
-                if args.debug:
+                if args["debug"]:
                     debug_data["html_place_status"] = "Geopy Success"
 
             else:
                 html_latitude, html_longitude, returned_place_name, returned_state_name = vals
-                if args.debug:
+                if args["debug"]:
                     debug_data["html_place_status"] = "Success"
 
             html_place_name = returned_place_name
@@ -326,13 +348,13 @@ if __name__ == "__main__":
                 etimes.extend([get_span(sent_tokens, etime) for etime in json_data["etime"].get(str_sent_idx, [])])
 
             # Place
-            if html_latitude == 0.0: # if html place failed or was non-existent
+            if args["check_extracted_first"] or html_latitude == 0.0: # if html place failed or was non-existent (If check_extracted_places_first is True enters here regardless!)
                 # Check if any place name we found is from a foreign country. If so, discard this event!
                 if any([is_foreign_country(place_name) for place_name in all_place]):
                     # TODO : Should we really discard this event?
                     foreign_place_name += 1
 
-                    if args.debug:
+                    if args["debug"]:
                         debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Foreign Place Fail"})
 
                     continue # Discard event
@@ -346,84 +368,97 @@ if __name__ == "__main__":
                         continue
                     elif vals[0] == "geopy":
                         latitude, longitude, returned_place_name, returned_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
-                        if args.debug:
+                        if args["debug"]:
                             debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Geopy Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": geopy_name})
                     else:
                         latitude, longitude, returned_place_name, returned_state_name = vals
-                        if args.debug:
+                        if args["debug"]:
                             debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": ""})
 
                     curr_place_name = returned_place_name
                     curr_state_name = returned_state_name
                     break
 
-                # No place name was found in our dist_dict or using geopy, so we try to find a state name.
+                # No place name was found in extracted places
                 if latitude == 0.0:
-                    if state_alts.get(html_place, "") != "": # Check in html place
-                        curr_state_name = state_alts[html_place]
-                        if args.debug:
-                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name from Html", "geocoding_original_name": html_place, "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
-                    else: # Check in extracted places
-                        no_state_name = True
-                        for place_name in all_place.most_common():
-                            if state_alts.get(place_name[0], "") != "":
-                                no_state_name = False
-                                curr_state_name = state_alts[place_name[0]]
-                                if args.debug:
-                                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name", "geocoding_original_name": place_name[0], "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+                    # No place name was found in extracted places, so we check if we have any html_place (in case we didn't look there first!)
+                    if args["check_extracted_first"] and html_latitude != 0.0:
+                        latitude, longitude, curr_place_name, curr_state_name = html_latitude, html_longitude, html_place_name, html_state_name
+                        if html_geopy_lat != 0.0:
+                            geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
 
-                                break
+                        if args["debug"]:
+                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success from Html", "geocoding_original_name": html_place, "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name, "geopy_address": geopy_name})
 
-                        if no_state_name:
-                            # NOTE : If no place name is found, we discard the event!
-                            events_with_no_place_name += 1
-                            # Write out whole json and which event that we could not find any place for
-                            with open(args.out_folder + "/nothing_found.json", "a", encoding="utf-8") as f:
+                        events_with_html_place += 1
+
+                    # No place name was found in extracted and html place using our dist_dict or geopy, so we try to find a state name.
+                    else:
+                        if state_alts.get(html_place, "") != "": # Check for state name in html place
+                            curr_state_name = state_alts[html_place]
+                            if args["debug"]:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name from Html", "geocoding_original_name": html_place, "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+                        else: # Check for state name in extracted places
+                            no_state_name = True
+                            for place_name in all_place.most_common():
+                                if state_alts.get(place_name[0], "") != "":
+                                    no_state_name = False
+                                    curr_state_name = state_alts[place_name[0]]
+                                    if args["debug"]:
+                                        debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name", "geocoding_original_name": place_name[0], "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+
+                                    break
+
+                            if no_state_name:
+                                # NOTE : If no place name is found, we discard the event!
+                                events_with_no_place_name += 1
+                                # Write out whole json and which event that we could not find any place for
+                                with open(args["out_folder"] + "/nothing_found.json", "a", encoding="utf-8") as f:
+                                    json_data["no_name_cluster"] = cluster
+                                    f.write(json.dumps(json_data) + "\n")
+
+                                    # TODO : Also need all of the places for the whole document.
+                                    # But doing this would slow the script too much !
+                                    # json_to_write = {"no_name_cluster": {"cluster_sent_ids": cluster,
+                                    #                                      "cluster_sents": [json_data["sentences"][i] for i in cluster],
+                                    #                                      "cluster_places": list(all_place.keys())},
+                                    #                  "sent_labels": json_data["sent_labels"],
+                                    #                  "all_sentences": json_data["sentences"],
+                                    #                  "all_clusters": json_data["event_clusters"]}
+                                    # f.write(json.dumps(json_to_write) + "\n")
+
+                                if args["debug"]:
+                                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "No Name Fail"})
+
+                                continue
+
+                            # Write out whole json and which event that we could not find any place for except a state name
+                            with open(args["out_folder"] + "/only_state_found.json", "a", encoding="utf-8") as f:
                                 json_data["no_name_cluster"] = cluster
+                                json_data["state_name"] = curr_state_name
                                 f.write(json.dumps(json_data) + "\n")
 
                                 # TODO : Also need all of the places for the whole document.
                                 # But doing this would slow the script too much !
                                 # json_to_write = {"no_name_cluster": {"cluster_sent_ids": cluster,
                                 #                                      "cluster_sents": [json_data["sentences"][i] for i in cluster],
-                                #                                      "cluster_places": list(all_place.keys())},
+                                #                                      "cluster_places": list(all_place.keys()),
+                                #                                      "found_state_name": curr_state_name},
                                 #                  "sent_labels": json_data["sent_labels"],
                                 #                  "all_sentences": json_data["sentences"],
                                 #                  "all_clusters": json_data["event_clusters"]}
                                 # f.write(json.dumps(json_to_write) + "\n")
 
-                            if args.debug:
-                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "No Name Fail"})
-
-                            continue
-
-                        # Write out whole json and which event that we could not find any place for except a state name
-                        with open(args.out_folder + "/only_state_found.json", "a", encoding="utf-8") as f:
-                            json_data["no_name_cluster"] = cluster
-                            json_data["state_name"] = curr_state_name
-                            f.write(json.dumps(json_data) + "\n")
-
-                            # TODO : Also need all of the places for the whole document.
-                            # But doing this would slow the script too much !
-                            # json_to_write = {"no_name_cluster": {"cluster_sent_ids": cluster,
-                            #                                      "cluster_sents": [json_data["sentences"][i] for i in cluster],
-                            #                                      "cluster_places": list(all_place.keys()),
-                            #                                      "found_state_name": curr_state_name},
-                            #                  "sent_labels": json_data["sent_labels"],
-                            #                  "all_sentences": json_data["sentences"],
-                            #                  "all_clusters": json_data["event_clusters"]}
-                            # f.write(json.dumps(json_to_write) + "\n")
-
-                        events_with_state_name += 1
+                            events_with_state_name += 1
 
                 events_with_place_name += 1
 
-            else: # If there is an html place
+            else: # If there is an html place (and check_extracted_places_first is False!)
                 latitude, longitude, curr_place_name, curr_state_name = html_latitude, html_longitude, html_place_name, html_state_name
                 if html_geopy_lat != 0.0:
                     geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
 
-                if args.debug:
+                if args["debug"]:
                     debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success from Html", "geocoding_original_name": html_place, "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name, "geopy_address": geopy_name})
 
                 events_with_html_place += 1
@@ -481,7 +516,7 @@ if __name__ == "__main__":
             out_json["text_snippet"] = doc_text[:(len(doc_text)//10)] # First tenth of the text
             out_json["url"] = filename_to_url(json_data["id"])
 
-            if args.internal: # Text are for only internal use only due to copyright issues
+            if args["internal"]: # Text are for only internal use only due to copyright issues
                 out_json["doc_text"] = doc_text
                 out_json["event_sentences"] = [json_data["sentences"][i] for i in cluster]
                 out_json["event_sentence_numbers"] = [i+1 for i in cluster]
@@ -490,7 +525,7 @@ if __name__ == "__main__":
 
             out_file.write(json.dumps(out_json) + "\n")
 
-        if args.debug:
+        if args["debug"]:
             if debug_clusters:
                 debug_data["clusters_info"] = debug_clusters
             debug_file.write(json.dumps(debug_data) + "\n")
@@ -499,10 +534,10 @@ if __name__ == "__main__":
     out_file.close()
 
     # Write out geopy cache
-    with open(args.place_folder + "/geopy_cache.json", "w", encoding="utf-8") as f:
+    with open(args["place_folder"] + "/geopy_cache.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(geopy_cache))
 
-    with open(args.out_folder + "/not_found_names.json", "w", encoding="utf-8") as f:
+    with open(args["out_folder"] + "/not_found_names.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(not_found_names))
 
 print("Out of %d documents processed, %d had no positive sentence and %d had only one positive sentence." %(total_documents, no_pos_sent, one_pos_sent))

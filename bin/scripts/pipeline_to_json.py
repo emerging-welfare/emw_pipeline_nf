@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
             # Date and place from html
             if args.dates_and_places_file != "":
-                matches = dates_and_places[dates_and_places.filename == data["id"]]
+                matches = dates_and_places[dates_and_places.filename == change_extension(data["id"])]
                 if len(matches) > 0:
                     data["html_year"], data["html_month"], data["html_day"] = matches.date.iloc[0].split("/")
                     if matches.place.iloc[0] != "":
