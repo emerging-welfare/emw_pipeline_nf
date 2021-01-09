@@ -208,7 +208,7 @@ foreign_alts = read_alternatives_tsv(args["place_folder"] + "/foreign_alternativ
 # TODO : Might move this ignore_list to geocoding_dictionaries?
 
 # Some names are thought to be places in India by geopy, but these are not really place names
-geopy_false_positives = ["financial"]
+geopy_false_positives = ["financial", "collectorate", "district collectorate", "government general hospital", "union territory", "old bus stand", "secretariat", "india.", "tahsildar", "new bus stand", "masjid", "government medical college hospital", "south india", "north india", "east india", "west india", "central bus stand", "civil station", "outer ring road", "district hospital", "medical college hospital", "new delhi.\u2014", "district court complex", "palace grounds", "adivasi", "car street", "german bakery", "mini civil station"]
 
 # Some list I created before. Does not really represent the extracted place names (except 'india' and maybe nltk stopwords)
 # None of the alternative names that we have is in this list!

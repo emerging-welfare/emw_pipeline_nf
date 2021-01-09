@@ -14,7 +14,8 @@ dates_and_places_file=${3:-""} # If not given, default is ""
 # OPTIONS
 out_filename="database.json" # Output json file
 # sentence_cascade=false # If true: Negative sentences' token labels are negative
-place_folder="~/geocoding_dictionaries/india/"
+place_folder="/home/omutlu/geocoding_dictionaries/india/"
+# place_folder="~/geocoding_dictionaries/india/"
 internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
@@ -41,7 +42,11 @@ if [[ -d $input_file_or_folder ]]; then # If folder
 fi
 
 echo "Constructing the event database"
-rm $out_folder/nothing_found.json $out_folder/only_state_found.json $out_folder/geopy_outs.txt # delete old run's info files if any (others already overwrite existing files)
+# delete old run's info files if any (others already overwrite existing files)
+if [[ -f $out_folder/nothing_found.json ]]; then
+    rm $out_folder/nothing_found.json $out_folder/only_state_found.json $out_folder/geopy_outs.txt
+fi
+
 python construct_event_database.py \
     --input_file $input_file_or_folder \
     --out_folder $out_folder \
@@ -49,8 +54,8 @@ python construct_event_database.py \
     --place_folder $place_folder \
     --internal $internal \
     --debug $debug \
-    --check_extracted_first $check_extracted_first | tee $out_folder/geocoding.log
+    --check_extracted_first $check_extracted_first > $out_folder/geocoding.log
 
-echo "\n\nRun Options: \n  -debug=$debug\n  -internal=$internal\n  -check_extracted_first=$check_extracted_first" >> $out_folder/geocoding.log
+echo -e "\n\nRun Options: \n  --debug=$debug\n  --internal=$internal\n  --check_extracted_first=$check_extracted_first" >> $out_folder/geocoding.log
 
 echo "Script Finished!"

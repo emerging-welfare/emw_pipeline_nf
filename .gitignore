@@ -22,4 +22,8 @@ violent_model.pickle
 *.conf
 bin/scripts/*.txt
 bin/scripts/*.json
+*.zip
+.ipynb_checkpoints
+**/.ipynb_checkpoints/
+bin/scripts/database_correlation/graphs/*
 .gitignore
