@@ -19,6 +19,7 @@ place_folder="/home/omutlu/geocoding_dictionaries/india/"
 internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
+target_country="india" # or "south_africa"
 
 if [[ -d $input_file_or_folder ]]; then # If folder
     echo "Merging jsons files together"
@@ -54,6 +55,7 @@ python construct_event_database.py \
     --place_folder $place_folder \
     --internal $internal \
     --debug $debug \
+    --target_country $target_country \
     --check_extracted_first $check_extracted_first > $out_folder/geocoding.log
 
 echo -e "\n\nRun Options: \n  --debug=$debug\n  --internal=$internal\n  --check_extracted_first=$check_extracted_first" >> $out_folder/geocoding.log

@@ -37,6 +37,7 @@ def get_args():
     parser.add_argument('--check_extracted_first', help="When doing geocoding, whether to check for places in extracted places first, rather than html places. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--internal', help="If the output is for internal use only. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa"])
 
     args = parser.parse_args()
     args = vars(args)
@@ -82,27 +83,24 @@ def get_coords_from_dict(dist_name, date):
     val = dist_dict[dist_name]
     if val[date]:
         coords, state_name = val[date]
+        return coords, state_name
     else: # no entry for some reason. TODO : Why does this happen?
         # print("name - date conflict : %s - %s" %(dist_name, date))
+        for year in census_years:
+            if val[year]:
+                coords, state_name = val[year]
+                return coords, state_name
 
-        if val["2019"]:
-            coords, state_name = val["2019"]
-        elif val["2011"]:
-            coords, state_name = val["2011"]
-        elif val["2001"]:
-            coords, state_name = val["2001"]
-        else: # TODO : Catch this if it happens!
-            print("No available coords in dist_dict for  : %s" %dist_name)
-            return 0
-
-    return coords, state_name
+        # TODO : Catch this if it happens!
+        print("No available coords in dist_dict for  : %s" %dist_name)
+        return 0
 
 def get_place_coordinates(place_name, date):
     global all_processed_place_names, state_name_fail, dist_name_success, geopy_success, not_found_fail, geopy_dist_name_success, geopy_dist_name_fail, ignore_list_fail
     all_processed_place_names += 1
 
     # Ignore list contains stopwords and target country's name
-    if place_name in ignore_list:
+    if place_name in all_ignore_list:
         ignore_list_fail += 1
         return "Error", "Ignore List"
 
@@ -132,23 +130,28 @@ def get_place_coordinates(place_name, date):
 
         geopy_cache[place_name] = location # Add to cache even if it is None
 
-    # if there is a district name in location["adress"], its length is more than 2
-    if location != None and location["address"].lower().endswith("india") and len(location["address"].split(", ")) > 2:
-        geopy_success += 1
-        geopy_names = [a.lower().replace(" district", "") for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always India
-        for name in geopy_names:
-            dist_name = dist_alts.get(name, "")
-            if dist_name != "":
-                geopy_dist_name_success += 1
-                coords, state_name = get_coords_from_dict(dist_name, date)
-                return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
+    if args["target_country"] == "india":
+        # if there is a district name in location["adress"], its length is more than 2
+        if location != None and location["address"].lower().endswith("india") and len(location["address"].split(", ")) > 2:
+            geopy_success += 1
+            geopy_names = [a.lower().replace(" district", "") for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always India
+            for name in geopy_names:
+                dist_name = dist_alts.get(name, "")
+                if dist_name != "":
+                    geopy_dist_name_success += 1
+                    coords, state_name = get_coords_from_dict(dist_name, date)
+                    return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
 
-        geopy_dist_name_fail += 1
-        with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
-            text_to_write = place_name + "    " + location["address"] + "\n"
-            f.write(text_to_write)
+            geopy_dist_name_fail += 1
+            with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
+                text_to_write = place_name + "    " + location["address"] + "\n"
+                f.write(text_to_write)
 
-        return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
+            return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
+
+    elif args["target_country"] == "south africa":
+        # TODO: populate here
+        pass
 
     not_found_names.append(place_name)
     not_found_fail += 1
@@ -159,6 +162,14 @@ def is_foreign_country(place_name):
         return True
     return False
 
+def sorted_nicely(l):
+    # Copied from this post -> https://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
+    def convert(text): return int(text) if text.isdigit() else text
+    def alphanum_key(key): return [convert(c) for c in re.split('([0-9]+)', key)]
+
+    return sorted(l, key=alphanum_key)
+
+
 # GLOBAL STUFF
 event_category_dict = {"demonst": "Demonstration", "arm_mil": "Armed Militancy", "group_clash": "Group Clash", "ind_act": "Industrial Action"}
 organizer_category_dict = {"Grassroots_Organization": "Grassroots Organization", "Political_Party": "Political Party",
@@ -168,6 +179,11 @@ participant_category_dict = {"halk": "Masses", "militan": "Militant", "aktivist"
                              "köylü": "Peasant", "öğrenci": "Student",
                              "siyasetçi": "Politician", "profesyonel": "Professional",
                              "işçi": "Proletariat", "esnaf/küçük üretici": "Petty Bourgeoisie"}
+# TODO: This is a pretty sloppy way to do this. But other ways bring unneccesary complexity.
+all_possible_census_years = ["1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998",
+                             "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007",
+                             "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016",
+                             "2017", "2018", "2019", "2020", "2021"]
 
 # For Statistics
 total_documents = 0
@@ -196,23 +212,36 @@ if os.path.exists(args["place_folder"] + "/geopy_cache.json"):
 else:
     geopy_cache = {}
 
-
 with open(args["place_folder"] + "/district_coords_dict.json", "r", encoding="utf-8") as f:
     dist_dict = json.loads(f.read())
+
+# we check all entries since some of them might not have some of the census years as keys
+census_years = list(set([k for v in dist_dict.values() for k in v.keys()]))
+census_years = list(reversed(sorted_nicely([a for a in census_years if a in all_possible_census_years]))) # descending order yearwise
+if len(census_years) == 0:
+    raise "No census year given as key in district_coords_dict.json"
 
 not_found_names = []
 state_alts = read_alternatives_tsv(args["place_folder"] + "/state_alternatives.tsv")
 dist_alts = read_alternatives_tsv(args["place_folder"] + "/district_alternatives.tsv")
 foreign_alts = read_alternatives_tsv(args["place_folder"] + "/foreign_alternatives.tsv")
 
-# TODO : Might move this ignore_list to geocoding_dictionaries?
+if os.path.exists(args["place_folder"] + "/geopy_false_positives.json"):
+    with open(args["place_folder"] + "/geopy_false_positives.json", "r", encoding="utf-8") as f:
+        geopy_false_positives = json.loads(f.read())
+else:
+    geopy_false_positives = []
 
-# Some names are thought to be places in India by geopy, but these are not really place names
-geopy_false_positives = ["financial", "collectorate", "district collectorate", "government general hospital", "union territory", "old bus stand", "secretariat", "india.", "tahsildar", "new bus stand", "masjid", "government medical college hospital", "south india", "north india", "east india", "west india", "central bus stand", "civil station", "outer ring road", "district hospital", "medical college hospital", "new delhi.\u2014", "district court complex", "palace grounds", "adivasi", "car street", "german bakery", "mini civil station"]
+if os.path.exists(args["place_folder"] + "/ignore_list.json"):
+    with open(args["place_folder"] + "/ignore_list.json", "r", encoding="utf-8") as f:
+        ignore_list = json.loads(f.read())
+else:
+    ignore_list = []
 
 # Some list I created before. Does not really represent the extracted place names (except 'india' and maybe nltk stopwords)
-# None of the alternative names that we have is in this list!
-ignore_list = stopwords.words('english') + geopy_false_positives + ['india', '!', '$', '%', '&', "'", "''", "'re", "'s", "'ve", '(', ')', '*', ',', '-', '--', '.', "n't", '...', '00:00', ':', ';', '<', '>', '?', '@', '[', ']', '_', '__', '`', '``', '|', '\x92\x92', '\x97', '–', '—', '‘', '’', '“', '”', "'m", "a.m.", '^', '/'] + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
+# Make sure none of the alternative names that we have is in this list!
+all_ignore_list = stopwords.words('english') + geopy_false_positives + ignore_list + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
+
 geolocator = Nominatim(user_agent="GLOCON")
 geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # limit rate to 1 second
 
@@ -249,13 +278,12 @@ if __name__ == "__main__":
                 continue
 
         # Date of article
+        census_year = census_years[-1] # if len of census_years is 1 or if html_year <= this value, this does not change
         html_year = int(json_data["html_year"]) # must exist in data
-        if html_year < 2002:
-            census_year = "2001"
-        elif html_year > 2001 and html_year < 2012:
-            census_year = "2011"
-        elif html_year > 2011:
-            census_year = "2019"
+        for year_idx in range(1,len(census_years)):
+            if html_year > int(census_years[year_idx]):
+                census_year = census_years[year_idx-1]
+                break
 
         # Html place
         html_latitude, html_geopy_lat = 0.0, 0.0
@@ -551,10 +579,10 @@ print("        %d had foreign places" %foreign_place_name)
 print("        %d had no usable place name" %events_with_no_place_name)
 print()
 print("Total number of processed place names with get_coordinates function : %d" %all_processed_place_names)
-print("    %d of these were ignored (stopwords or 'india')" %ignore_list_fail)
+print("    %d of these were ignored (stopwords, geopy_false_positives, ignore_list etc.)" %ignore_list_fail)
 print("    %d of these were state names" %state_name_fail)
 print("    %d of these were district names" %dist_name_success)
-print("    %d of these were decided to be place names in india by geopy" %geopy_success)
+print("    %d of these were decided to be place names in target country by geopy" %geopy_success)
 print("        %d of the returned addresses of geopy were in our district dictionary" %geopy_dist_name_success)
 print("        %d of the returned addresses of geopy were not in our district dictionary" %geopy_dist_name_fail)
 print("    %d of these failed all the way" %not_found_fail)
