@@ -37,6 +37,7 @@ def get_args():
     parser.add_argument('--check_extracted_first', help="When doing geocoding, whether to check for places in extracted places first, rather than html places. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--internal', help="If the output is for internal use only. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--dist_has_locality', help="Whether district_dict_coords.json has locality key for every item. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa"])
 
     args = parser.parse_args()
@@ -46,6 +47,7 @@ def get_args():
     args["check_extracted_first"] = get_args_boolean(args["check_extracted_first"])
     args["internal"] = get_args_boolean(args["internal"])
     args["debug"] = get_args_boolean(args["debug"])
+    args["dist_has_locality"] = get_args_boolean(args["dist_has_locality"])
 
     return(args)
 
@@ -123,10 +125,11 @@ def get_place_coordinates(place_name, date):
     if location == "": # If name is not in our cache
         try: # Might throw error due to connection
             location = geocode(place_name)
-            if location != None:
-                location = {"latitude": location.latitude, "longitude": location.longitude, "address": location.address}
         except:
             location = None
+
+        if location != None:
+            location = {"latitude": location.latitude, "longitude": location.longitude, "address": location.address}
 
         geopy_cache[place_name] = location # Add to cache even if it is None
 
@@ -149,9 +152,26 @@ def get_place_coordinates(place_name, date):
 
             return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
 
-    elif args["target_country"] == "south africa":
-        # TODO: populate here
-        pass
+    # Pretty much the same code as india's, but it can change significantly for some other country.
+    elif args["target_country"] == "south_africa":
+        # if there is a district name in location["adress"], its length is more than 2
+        if location != None and location["address"].lower().endswith("south africa") and len(location["address"].split(", ")) > 2:
+            geopy_success += 1
+            # NOTE: Since these are in reversed order, we first match with the more local place.
+            geopy_names = [a.lower() for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always South Africa
+            for name in geopy_names:
+                dist_name = dist_alts.get(name, "")
+                if dist_name != "":
+                    geopy_dist_name_success += 1
+                    coords, state_name = get_coords_from_dict(dist_name, date)
+                    return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
+
+            geopy_dist_name_fail += 1
+            with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
+                text_to_write = place_name + "    " + location["address"] + "\n"
+                f.write(text_to_write)
+
+            return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
 
     not_found_names.append(place_name)
     not_found_fail += 1
@@ -389,23 +409,74 @@ if __name__ == "__main__":
                     # break # Discard document -> Not possible, because we already write the previous clusters to output file.
                     # So the only events we discard are this and the rest of the clusters, not the whole document.
 
-                # We will use the most common place name if it is a place name and it is from target country.
-                for place_name in all_place.most_common():
-                    vals = get_place_coordinates(place_name[0], census_year)
-                    if vals[0] == "Error":
-                        continue
-                    elif vals[0] == "geopy":
-                        latitude, longitude, returned_place_name, returned_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
-                        if args["debug"]:
-                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Geopy Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": geopy_name})
-                    else:
-                        latitude, longitude, returned_place_name, returned_state_name = vals
-                        if args["debug"]:
-                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success", "geocoding_original_name": place_name[0], "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name, "geopy_address": ""})
+                if args["dist_has_locality"]: # dist_dict has "locality" key
+                    possible_places = {} # its keys are a tuple of (locality, number_of_mentions_in_extracted_places)
+                    # We will use the most "local" and then most common place name, if it is a place name and it is from target country.
+                    # This for loop will check for every place name in all_place to compare their locality later.
+                    for place_name in all_place.keys():
+                        vals = get_place_coordinates(place_name, census_year)
+                        if vals[0] == "Error":
+                            continue
 
-                    curr_place_name = returned_place_name
-                    curr_state_name = returned_state_name
-                    break
+                        elif vals[0] == "geopy":
+                            _returned_place_name = vals[3]
+                            if _returned_place_name != "": # we found a dist_name in the returned address from geopy
+                                curr_locality = dist_dict[_returned_place_name]["locality"]
+                                possible_places[(curr_locality, all_place[place_name])] = list(vals) + [place_name]
+                            else: # since this is not preferable, we assign 0 as its locality.
+                                possible_places[(0, all_place[place_name])] = list(vals) + [place_name]
+
+                        else:
+                            _returned_place_name = vals[2]
+                            curr_locality = dist_dict[_returned_place_name]["locality"]
+                            possible_places[(curr_locality, all_place[place_name])] = list(vals) + [place_name]
+
+                    if len(possible_places) > 0: # we had at least one non-error
+                        best_key = sorted(possible_places.keys(), reverse=True)[0] # sort in descending order
+                        vals = possible_places[best_key]
+                        place_name = vals[-1]
+                        vals = vals[:-1]
+                        if vals[0] == "geopy":
+                            latitude, longitude, curr_place_name, curr_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
+                            if args["debug"]:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                       "geocoding_status": "Geopy Success", "geocoding_original_name": place_name,
+                                                       "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name,
+                                                       "geopy_address": geopy_name})
+
+                        else:
+                            latitude, longitude, curr_place_name, curr_state_name = vals
+                            if args["debug"]:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                       "geocoding_status": "Success", "geocoding_original_name": place_name,
+                                                       "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name,
+                                                       "geopy_address": ""})
+
+                else: # dist_dict does not have "locality" key
+                    # We will use the most common place name, if it is a place name and it is from target country.
+                    # This for loop stops after finding a suitable place name
+                    for place_name in all_place.most_common():
+                        vals = get_place_coordinates(place_name[0], census_year)
+                        if vals[0] == "Error":
+                            continue
+                        elif vals[0] == "geopy":
+                            latitude, longitude, returned_place_name, returned_state_name, geopy_lat, geopy_long, geopy_name = vals[1:]
+                            if args["debug"]:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                       "geocoding_status": "Geopy Success", "geocoding_original_name": place_name[0],
+                                                       "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name,
+                                                       "geopy_address": geopy_name})
+                        else:
+                            latitude, longitude, returned_place_name, returned_state_name = vals
+                            if args["debug"]:
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                       "geocoding_status": "Success", "geocoding_original_name": place_name[0],
+                                                       "geocoding_final_district": returned_place_name, "geocoding_final_state": returned_state_name,
+                                                       "geopy_address": ""})
+
+                        curr_place_name = returned_place_name
+                        curr_state_name = returned_state_name
+                        break
 
                 # No place name was found in extracted places
                 if latitude == 0.0:
@@ -416,7 +487,10 @@ if __name__ == "__main__":
                             geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
 
                         if args["debug"]:
-                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success from Html", "geocoding_original_name": html_place, "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name, "geopy_address": geopy_name})
+                            debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                   "geocoding_status": "Success from Html", "geocoding_original_name": html_place,
+                                                   "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name,
+                                                   "geopy_address": geopy_name})
 
                         events_with_html_place += 1
 
@@ -425,7 +499,9 @@ if __name__ == "__main__":
                         if state_alts.get(html_place, "") != "": # Check for state name in html place
                             curr_state_name = state_alts[html_place]
                             if args["debug"]:
-                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name from Html", "geocoding_original_name": html_place, "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+                                debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                       "geocoding_status": "Only State Name from Html", "geocoding_original_name": html_place,
+                                                       "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
                         else: # Check for state name in extracted places
                             no_state_name = True
                             for place_name in all_place.most_common():
@@ -433,7 +509,9 @@ if __name__ == "__main__":
                                     no_state_name = False
                                     curr_state_name = state_alts[place_name[0]]
                                     if args["debug"]:
-                                        debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Only State Name", "geocoding_original_name": place_name[0], "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
+                                        debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                                               "geocoding_status": "Only State Name", "geocoding_original_name": place_name[0],
+                                                               "geocoding_final_district": "", "geocoding_final_state": curr_state_name, "geopy_address": ""})
 
                                     break
 
@@ -487,7 +565,10 @@ if __name__ == "__main__":
                     geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
 
                 if args["debug"]:
-                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()), "geocoding_status": "Success from Html", "geocoding_original_name": html_place, "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name, "geopy_address": geopy_name})
+                    debug_clusters.append({"sentence_ids": cluster, "extracted_places": list(all_place.keys()),
+                                           "geocoding_status": "Success from Html", "geocoding_original_name": html_place,
+                                           "geocoding_final_district": curr_place_name, "geocoding_final_state": curr_state_name,
+                                           "geopy_address": geopy_name})
 
                 events_with_html_place += 1
 
@@ -566,7 +647,7 @@ if __name__ == "__main__":
         f.write(json.dumps(geopy_cache))
 
     with open(args["out_folder"] + "/not_found_names.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(not_found_names))
+        f.write(json.dumps(Counter(not_found_names)))
 
 print("Out of %d documents processed, %d had no positive sentence and %d had only one positive sentence." %(total_documents, no_pos_sent, one_pos_sent))
 print()
