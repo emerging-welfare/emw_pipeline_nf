@@ -13,14 +13,14 @@ dates_and_places_file=${3:-""} # If not given, default is ""
 
 # OPTIONS
 out_filename="database.json" # Output json file
+target_country="south_africa" # "india" or "south_africa"
 # sentence_cascade=false # If true: Negative sentences' token labels are negative
-place_folder="/home/omutlu/geocoding_dictionaries/india/"
+place_folder="/home/omutlu/geocoding_dictionaries/$target_country/"
 # place_folder="~/geocoding_dictionaries/india/"
 internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
-target_country="india" # or "south_africa"
-dist_has_locality="false"
+dist_has_locality="true"
 
 if [[ -d $input_file_or_folder ]]; then # If folder
     echo "Merging jsons files together"

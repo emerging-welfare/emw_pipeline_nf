@@ -156,6 +156,7 @@ def get_place_coordinates(place_name, date):
     elif args["target_country"] == "south_africa":
         # if there is a district name in location["adress"], its length is more than 2
         if location != None and location["address"].lower().endswith("south africa") and len(location["address"].split(", ")) > 2:
+            geopy_places.append(place_name)
             geopy_success += 1
             # NOTE: Since these are in reversed order, we first match with the more local place.
             geopy_names = [a.lower() for a in reversed(location["address"].split(", ")[-5:-1])] # last 5 except the last one which is always South Africa
@@ -241,6 +242,7 @@ census_years = list(reversed(sorted_nicely([a for a in census_years if a in all_
 if len(census_years) == 0:
     raise "No census year given as key in district_coords_dict.json"
 
+geopy_places = []
 not_found_names = []
 state_alts = read_alternatives_tsv(args["place_folder"] + "/state_alternatives.tsv")
 dist_alts = read_alternatives_tsv(args["place_folder"] + "/district_alternatives.tsv")
@@ -648,6 +650,9 @@ if __name__ == "__main__":
 
     with open(args["out_folder"] + "/not_found_names.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(Counter(not_found_names)))
+
+    with open(args["out_folder"] + "/geopy_places.json", "w", encoding="utf-8") as f:
+        f.write(json.dumps(Counter(geopy_places)))
 
 print("Out of %d documents processed, %d had no positive sentence and %d had only one positive sentence." %(total_documents, no_pos_sent, one_pos_sent))
 print()
