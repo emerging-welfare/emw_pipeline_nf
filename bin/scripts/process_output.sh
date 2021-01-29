@@ -60,6 +60,6 @@ python construct_event_database.py \
     --dist_has_locality $dist_has_locality \
     --check_extracted_first $check_extracted_first > $out_folder/geocoding.log
 
-echo -e "\n\nRun Options: \n  --debug=$debug\n  --internal=$internal\n  --check_extracted_first=$check_extracted_first" >> $out_folder/geocoding.log
+echo -e "\n\nRun Options: \n  --debug=$debug\n  --internal=$internal\n  --check_extracted_first=$check_extracted_first\n  --target_country=$target_country\n  --dist_has_locality=$dist_has_locality" >> $out_folder/geocoding.log
 
 echo "Script Finished!"
