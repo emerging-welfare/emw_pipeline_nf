@@ -21,6 +21,7 @@ internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
 dist_has_locality="true"
+batch_name="thehindu_20210211"
 
 if [[ -d $input_file_or_folder ]]; then # If folder
     echo "Merging jsons files together"
@@ -58,6 +59,7 @@ python construct_event_database.py \
     --debug $debug \
     --target_country $target_country \
     --dist_has_locality $dist_has_locality \
+    --batch_name $batch_name \
     --check_extracted_first $check_extracted_first > $out_folder/geocoding.log
 
 echo -e "\n\nRun Options: \n  --debug=$debug\n  --internal=$internal\n  --check_extracted_first=$check_extracted_first\n  --target_country=$target_country\n  --dist_has_locality=$dist_has_locality" >> $out_folder/geocoding.log

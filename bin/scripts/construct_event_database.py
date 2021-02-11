@@ -39,6 +39,7 @@ def get_args():
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--dist_has_locality', help="Whether district_dict_coords.json has locality key for every item. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa"])
+    parser.add_argument('--batch_name', help="Prefix to be used when assigning ids to events.")
 
     args = parser.parse_args()
     args = vars(args)
@@ -273,6 +274,7 @@ if __name__ == "__main__":
     if args["debug"]:
         debug_file = open(args["out_folder"] + "/" + re.sub("\.json$", "_debug.json", args["out_filename"]), "w", encoding="utf-8")
 
+    curr_event_id = 0
     for json_data in input_file:
         json_data = json.loads(json_data)
         clusters = json_data.get("event_clusters", [])
@@ -573,6 +575,10 @@ if __name__ == "__main__":
                                            "geopy_address": geopy_name})
 
                 events_with_html_place += 1
+
+            # ID
+            curr_event_id += 1
+            out_json["event_id"] = args["batch_name"] + "_" + str(curr_event_id)
 
             # Place
             out_json["district_name"] = curr_place_name # can be empty
