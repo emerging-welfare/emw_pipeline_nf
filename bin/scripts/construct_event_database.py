@@ -82,6 +82,13 @@ def filename_to_url(filename):
     url = re.sub("\.json$", ".ece", url)
     return url
 
+def int_to_str(x):
+    x = str(x)
+    for _ in range(8-len(x)):
+        x = "0" + x
+
+    return x
+
 def get_coords_from_dict(dist_name, date):
     val = dist_dict[dist_name]
     if val[date]:
@@ -578,7 +585,7 @@ if __name__ == "__main__":
 
             # ID
             curr_event_id += 1
-            out_json["event_id"] = args["batch_name"] + "_" + str(curr_event_id)
+            out_json["event_id"] = args["batch_name"] + "_" + int_to_str(curr_event_id)
 
             # Place
             out_json["district_name"] = curr_place_name # can be empty
