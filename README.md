@@ -216,3 +216,43 @@ Set your parameters in `nextflow.conf` first.
 ```
 bash start.sh
 ```
+
+## Output
+* `event_id`
+    The id of the event.
+* `url`
+    Using your browser, you can go this url to check the text of the document this event was extracted from.
+* `title`
+    Title of the document this event was extracted from.
+* `event_sentence_numbers`
+    All of the information of this event were extracted from these sentences. Note that our tool's sentence separation/numbering might not be perfect.
+* `district_name`
+    The district of the event. Categorizable. If empty, check for state_name.
+* `state_name`
+    State of the event. Categorizable. If empty, specific_place_name must not be empty.
+* `specific_place_name`
+    Specific place name returned by geopy tool. Might be empty since geopy might not have been used.
+* `year`
+    Publishing year.
+* `month`
+    Publishing month. Might not be available for some sources.
+* `day`
+    Publishing day. Might not be available for some sources.
+* `urbanrural`
+    Indicates whether the event takes place in a "urban" or "rural" setting. Decided on document level.
+* `violent`
+    Indicates whether the event is "violent" or "non-violent". Decided on document level.
+* `triggers`
+    Extracted triggers of the event.
+* `eventcategory`
+    Semantic category of the event.
+* `participants`
+    Extracted participants of the event.
+* `participant0category - participant3category`
+    Semantic category of the participants of the event. Goes from most common to least common, "participant0category" being the most common one.
+* `organizers`
+    Extracted organizers of the event.
+* `organizer0category - organizer3category`
+    Semantic category of the organizers of the event. Goes from most common to least common, "organizer0category" being the most common one.
+* `targets`
+    Extracted targets of the event.
