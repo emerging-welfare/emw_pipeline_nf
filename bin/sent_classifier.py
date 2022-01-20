@@ -40,10 +40,12 @@ if __name__ == "__main__":
     jsons=eval(args.data)
 
     rtext = request([" ".join([str(tok) for tok in d["sent_tokens"]]) for d in jsons])
-    sent_labels = rtext["output_protest"]
     trigger_semantic_labels = rtext["trigger_sem"]
     participant_semantic_labels = rtext["part_sem"]
     organizer_semantic_labels = rtext["org_sem"]
 
-    out_text = "[SPLIT]".join([data["filename"] + ":" + str(data["sent_num"]) + ":" + str(sent_labels[i]) + ":" + str(trigger_semantic_labels[i]) + ":" + str(participant_semantic_labels[i]) + ":" + str(organizer_semantic_labels[i]) for i,data in enumerate(jsons)])
+    # TODO: If there is any need for sentence level classification,
+    # we can do it here with gpu.
+
+    out_text = "[SPLIT]".join([data["filename"] + ":" + str(data["sent_num"]) + ":" + str(trigger_semantic_labels[i]) + ":" + str(participant_semantic_labels[i]) + ":" + str(organizer_semantic_labels[i]) for i,data in enumerate(jsons)])
     print(out_text)

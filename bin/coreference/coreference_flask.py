@@ -25,12 +25,15 @@ def prepare_pair(s1, s2, max_length=256):
     """returns input_ids, attention_mask, token_type_ids for set of data ready in BERT/ALBERT format"""
     global tokenizer
 
-    t = tokenizer.encode_plus(s1,
-                        text_pair=s2,
-                        pad_to_max_length=True,
-                        add_special_tokens=True,
-                        max_length=max_length,
-                        return_tensors='pt')
+    # t = tokenizer.encode_plus(s1,
+    #                     text_pair=s2,
+    #                     pad_to_max_length=True,
+    #                     add_special_tokens=True,
+    #                     max_length=max_length,
+    #                     return_tensors='pt')
+
+    t = tokenizer(s1, s2, padding="max_length", truncation=True,
+                  max_length=max_length, return_tensors="pt")
 
     if "token_type_ids" not in t: t["token_type_ids"] = torch.tensor([[1, 1]])
 

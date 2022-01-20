@@ -6,7 +6,7 @@
 // println("source is set to $params.source")
 // println("document batchsize is set to $params.doc_batchsize")
 // println("token batchisize is set to $params.token_batchsize")
-// println("perfix is set to $params.prefix" )
+// println("prefix is set to $params.prefix" )
 // println("classifier is first is  $params.classifier_first")
 
 // If we didn't run doc level or sent_level, then input dir have sentences in it. If we did run doc level or sent_level then outdir contains the stuff we need.
@@ -24,7 +24,7 @@ else {
     json_channel = Channel.fromPath(input_dir + params.files_start_with)
 }
 
-process token_classifier {
+process multi_task_classifier {
 //    errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.sent").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore'
   input:
@@ -33,24 +33,24 @@ process token_classifier {
     if (params.cascaded) {
 	if (params.do_coreference) {
 	"""
-	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded --do_coreference
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --max_num_sents $params.multi_task_num_sents --max_length $params.multi_task_max_length --cascaded --do_coreference
 	"""
 	}
 	else {
 	"""
-	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --cascaded
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --max_num_sents $params.multi_task_num_sents --max_length $params.multi_task_max_length --cascaded
 	"""
 	}
     }
     else {
 	if (params.do_coreference) {
 	"""
-	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --do_coreference
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir --max_num_sents $params.multi_task_num_sents --max_length $params.multi_task_max_length --do_coreference
 	"""
 	}
 	else {
 	"""
-	python3 $params.prefix/bin/token_classifier_batch.py --input_files '$in_json' --out_dir $params.outdir
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --out_dir --max_num_sents $params.multi_task_num_sents --max_length $params.multi_task_max_length $params.outdir
 	"""
 	}
     }

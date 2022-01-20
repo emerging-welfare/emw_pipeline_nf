@@ -53,7 +53,6 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='classifier_flask.py',
                                      description='Flask Server for Sentence Classification')
-    parser.add_argument('--gpu_number_protest', help="Insert the gpu count/number , if more than gpu will be allocated please use the following format '0,1,2,3', where 0,1,2 and 3 gpus will be allocated.\n or just type the number of required gpu, i.e 6 ",default='6')
     parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default='3')
     parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default='4')
     parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default='5')
@@ -82,12 +81,10 @@ class queryList(Resource):
         sentences = [[int(tok) for tok in token_ids.split()] for token_ids in args['sentences']]
         input_ids, input_mask, segment_ids = prepare_data(sentences, max_seq_length)
 
-        output_protest = predict(input_ids, input_mask, segment_ids, model_protest, device_protest)
         output_sem = predict(input_ids, input_mask, segment_ids, model_sem, device_trigger)
         output_part_sem = predict(input_ids, input_mask, segment_ids, model_part_sem, device_part)
         output_org_sem = predict(input_ids, input_mask, segment_ids, model_org_sem, device_org)
 
-        args["output_protest"] = output_protest
         args["trigger_sem"] = output_sem # trigger_sem_label_list[output_sem].tolist()
         args["part_sem"] = output_part_sem # partic_sem_label_list[output_part_sem].tolist()
         args["org_sem"] = output_org_sem # org_sem_label_list[output_org_sem].tolist()
@@ -158,25 +155,6 @@ elif len(gpu_range) >= 2:
 model_org_sem.to(device_org)
 model_org_sem.eval()
 # #####
-
-### protest classifier ####
-model_path_protest_path = HOME+ "/.pytorch_pretrained_bert/sent_model.pt"
-label_list_protest = ["0", "1"]
-num_labels_protest = len(label_list_protest)
-model_protest = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_protest)
-
-model_protest.load_state_dict(torch.load(model_path_protest_path, map_location='cpu'))
-gpu_range = args.gpu_number_protest.split(",")
-if len(gpu_range)==1:
-    device_protest = torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range)>=2:
-    device_ids = [int(x) for x in gpu_range]
-    device_protest = torch.device("cuda:{0}".format(int(device_ids[0])))
-    model_protest = torch.nn.DataParallel(model_protest,device_ids=device_ids,output_device=device_protest, dim=0)
-
-model_protest.to(device_protest)
-model_protest.eval()
-#####
 
 api.add_resource(queryList, '/queries')
 app.run(host='0.0.0.0', port=4999, debug=True)

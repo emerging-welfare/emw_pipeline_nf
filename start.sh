@@ -11,13 +11,12 @@ export PYTHONPATH="$prefix/bin"
 [ ! -d "$output" ] && mkdir -p "$output"
 
 echo "document classifier gpus = $gpu_classifier
-    Sentence classifier gpus= $gpu_number_protest
     Sentence trigger se gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
     Sentence coreference gpu= $gpu_coreference
-    Token classifier gpus= $gpu_token 
-    Place classifier gpus= $gpu_number_place 
+    Token classifier gpus= $gpu_token
+    Place classifier gpus= $gpu_number_place
     "
 
 echo "input folder is =$input" >&2
@@ -34,6 +33,8 @@ echo '{
     "source":"'"$source"'",
     "doc_batchsize":'$doc_batchsize',
     "token_batchsize":'$token_batchsize',
+    "multi_task_num_sents":'$multi_task_num_sents',
+    "multi_task_max_length":'$multi_task_max_length',
     "prefix":"'"$prefix"'",
     "extractor_script_path":"'"$extractor_script_path"'",
     "cascaded":'$cascaded',
@@ -62,13 +63,13 @@ doc_finished=false
 sent_finished=false
 tok_finished=false
 
-# TODO : Find a better regex, do it in one sed
-# If RUN_DOC is true, this file will be empty
-rm "$output"positive_filenames.txt # clear out previous run's file if there is any
-echo "filename" >> "$output"positive_filenames.txt
-# find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
-# TODO : Filenames with "'" char can be written in positive_filenames.txt. When reading this in sent_level.nf and tok_level.nf, does this cause problems?
-find $input -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+# # TODO : Find a better regex, do it in one sed
+# # If RUN_DOC is true, this file will be empty
+# rm "$output"positive_filenames.txt # clear out previous run's file if there is any
+# echo "filename" >> "$output"positive_filenames.txt
+# # find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
+# # TODO : Filenames with "'" char can be written in positive_filenames.txt. When reading this in sent_level.nf and tok_level.nf, does this cause problems?
+# find $input -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
 
 # ******** RUNNING PIPELINE ********
 if [ "$RUN_DOC" = true ] ; then
@@ -92,7 +93,7 @@ fi
 if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
     if ! screen -ls | grep -q sent; then
-	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_protest $gpu_number_protest --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
+	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
 	sleep 60
     fi
     nextflow sent_level.nf -params-file params.json && killall screen &&  sent_finished=true ;
@@ -103,16 +104,16 @@ if [ "$RUN_SENT" = true ] ; then
 fi
 
 if [ "$RUN_TOK" = true ] ; then
-    echo "******** TOKEN LEVEL ********"    
+    echo "******** TOKEN LEVEL ********"
     if $do_coreference && ! screen -ls | grep -q coreference; then
 	screen -S coreference -dm python $prefix/bin/coreference/coreference_flask.py --gpu_number $gpu_coreference
 	# TODO : sleep 15 here?
     fi
     if ! screen -ls | grep -q tok; then
-	screen -S tok -dm python $prefix/bin/token_classifier/classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place"
+	screen -S tok -dm python $prefix/bin/multi_task_classifier/multi_task_classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place" --language $source_lang
 	sleep 30
     fi
-    nextflow tok_level.nf -params-file params.json && killall screen &&  tok_finished=true ;
+    nextflow multi_task.nf -params-file params.json && killall screen &&  tok_finished=true ;
     if [ "$tok_finished" = false ] ; then
 	echo "Error occured during Token level. Aborting pipeline!"
 	exit 3

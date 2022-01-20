@@ -28,13 +28,11 @@ if __name__ == "__main__":
     args = get_args()
     sent_list = args.data.strip("[ ]").split(",")
 
-    sent_labels = [0] * len(sent_list)
     trigger_labels = [0] * len(sent_list)
     part_labels = [0] * len(sent_list)
     org_labels = [0] * len(sent_list)
     for sent in sent_list:
-        sent_num, sent_label, trigger, part, org = sent.strip().split(":")[1:]
-        sent_labels[int(sent_num)] = int(sent_label)
+        sent_num, trigger, part, org = sent.strip().split(":")[1:]
         trigger_labels[int(sent_num)] = trigger_label_list[int(trigger)]
         part_labels[int(sent_num)] = part_label_list[int(part)]
         org_labels[int(sent_num)] = org_label_list[int(org)]
@@ -43,9 +41,10 @@ if __name__ == "__main__":
     with open(args.input_dir + filename, "r", encoding="utf-8") as f:
         json_data = json.loads(f.read())
 
-    json_data["sent_labels"] = sent_labels
     json_data["trigger_semantic"] = trigger_labels
     json_data["participant_semantic"] = part_labels
     json_data["organizer_semantic"] = org_labels
 
+    # TODO: We can use 2 more gpus either in sent_preprocess or here.
+    # Violence classification is a candidate if it's in document level
     write_to_json(json_data, filename, out_dir=args.out_dir)

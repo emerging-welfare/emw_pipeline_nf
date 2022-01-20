@@ -6,6 +6,7 @@ from geopy.extra.rate_limiter import RateLimiter
 from nltk.corpus import stopwords
 import os
 import re
+import ipdb
 
 """
 This script is a copy of construct event database script.
@@ -36,7 +37,6 @@ def get_args():
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--dist_has_locality', help="Whether district_dict_coords.json has locality key for every item. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa"])
-    parser.add_argument('--batch_name', help="Prefix to be used when assigning ids to events.")
 
     args = parser.parse_args()
     args = vars(args)
@@ -299,11 +299,10 @@ if __name__ == "__main__":
                 one_pos_sent += 1
             else:
                 no_pos_sent += 1
-                if args["debug"]:
-                    debug_data["pred_clusters"] = []
-                    debug_data["clusters_info"] = []
-                    debug_data["html_place"] = json_data.get("html_place", "").lower()
-                    out_file.write(json.dumps(debug_data) + "\n")
+                debug_data["pred_clusters"] = []
+                debug_data["clusters_info"] = []
+                debug_data["html_place"] = json_data.get("html_place", "").lower()
+                out_file.write(json.dumps(debug_data) + "\n")
 
                 continue
 
@@ -319,6 +318,7 @@ if __name__ == "__main__":
 
         # Html place
         html_latitude, html_geopy_lat = 0.0, 0.0
+        # html_place_name, html_state_name, html_geopy_name = "", "", "" # TODO: once you finish with only html place delete this
         html_place = json_data.get("html_place", "").lower() # might not exist in data
 
         debug_data["html_place"] = html_place
@@ -332,6 +332,11 @@ if __name__ == "__main__":
             vals = get_place_coordinates(html_place, census_year)
             if vals[0] == "Error":
                 returned_place_name = ""
+                # # TODO: once you finish with only html place geocoding comment next two lines
+                # if vals[1] == "State Name":
+                #     returned_state_name = state_alts[html_place]
+                # else:
+                #     returned_state_name = ""
                 returned_state_name = ""
 
             elif vals[0] == "geopy":
@@ -343,6 +348,7 @@ if __name__ == "__main__":
             html_place_name = returned_place_name
             html_state_name = returned_state_name
 
+        #ipdb.set_trace()
         for cluster in clusters:
             total_events += 1
 
@@ -429,6 +435,7 @@ if __name__ == "__main__":
                 continue
 
             # Place
+            # if args["check_extracted_first"]: # TODO: once you finish with only html place geocoding comment this line, uncomment the next line
             if args["check_extracted_first"] or html_latitude == 0.0: # if html place failed or was non-existent (If check_extracted_places_first is True enters here regardless!)
                 # Check if any place name we found is from a foreign country. If so, discard this event!
                 if any([is_foreign_country(place_name) for place_name in all_place]):
@@ -578,6 +585,21 @@ if __name__ == "__main__":
                 events_with_place_name += 1
 
             else: # If there is an html place (and check_extracted_places_first is False!)
+                # # TODO: once you finish with only html place geocoding delete until you see *****
+                # if (html_place_name == "" and html_geopy_name == "") and html_state_name == "": # no name found
+                #     out_json["is_kept"] = "Discarded"
+                #     out_json["geocoding_status"] = "Fail - No Name Found"
+                #     debug_clusters.append(out_json)
+                #     continue
+
+                # elif html_place_name == "" and html_state_name != "": # only state name
+                #     out_json["geocoding_status"] = "Only State - From Html Place"
+                #     debug_clusters.append(out_json)
+                #     latitude, longitude, curr_place_name, curr_state_name = html_latitude, html_longitude, html_place_name, html_state_name
+
+                # else:
+                # # *****
+
                 latitude, longitude, curr_place_name, curr_state_name = html_latitude, html_longitude, html_place_name, html_state_name
                 if html_geopy_lat != 0.0:
                     geopy_lat, geopy_long, geopy_name = html_geopy_lat, html_geopy_long, html_geopy_name
