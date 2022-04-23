@@ -10,13 +10,11 @@ export PYTHONPATH="$prefix/bin"
  # Check if directory exists in bash and if not create it
 [ ! -d "$output" ] && mkdir -p "$output"
 
-echo "document classifier gpus = $gpu_classifier
-    Sentence trigger se gpu= $gpu_number_tsc
+echo "
+    Sentence trigger sem gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
-    Sentence coreference gpu= $gpu_coreference
-    Token classifier gpus= $gpu_token
-    Place classifier gpus= $gpu_number_place
+    Multi task classifier gpus= $gpu_multi_task
     "
 
 echo "input folder is =$input" >&2
@@ -26,24 +24,20 @@ echo "output folder is=$output">&2
 echo "the config file is generated "
 echo '{
     "input_dir":"'"$input"'",
-    "input":"'"$input$files_start_with"'",
-    "files_start_with":"'"$files_start_with"'",
     "outdir":"'"$output"'",
-    "source_lang":"'"$source_lang"'",
-    "source":"'"$source"'",
-    "doc_batchsize":'$doc_batchsize',
-    "token_batchsize":'$token_batchsize',
-    "multi_task_num_sents":'$multi_task_num_sents',
-    "multi_task_max_length":'$multi_task_max_length',
     "prefix":"'"$prefix"'",
+    "filename_wildcard":"'"$filename_wildcard"'",
+    "doc_cascaded":'$doc_cascaded',
+    "sent_cascaded":'$sent_cascaded',
+    "source_lang":"'"$source_lang"'",
+    "do_text_extraction": '$do_text_extraction',
     "extractor_script_path":"'"$extractor_script_path"'",
-    "cascaded":'$cascaded',
-    "do_coreference":'$do_coreference',
-    "classifier_first":'$classifier_first',
+    "multi_task_batchsize":'$multi_task_batchsize',
+    "doc_batchsize":'$doc_batchsize',
     "sent_batchsize":'$sent_batchsize',
-    "RUN_DOC":'$RUN_DOC',
+    "RUN_MULTI_TASK":'$RUN_MULTI_TASK',
     "RUN_SENT":'$RUN_SENT',
-    "RUN_TOK":'$RUN_TOK',
+    "RUN_DOC":'$RUN_DOC',
     "RUN_POST":'$RUN_POST'
 }' > params.json
 
@@ -57,38 +51,60 @@ sleep 1
 # TODO : sent level task paralellism
 # TODO : In current version, all sentences go through semantic stuff. Should only the positive sentences go through them? If yes, how?
 # TODO : we give list of filenames to classifier_batch and token_classifier_batch, but they handle it differently. Why is this the case?
-# TODO : Move coreference to a better place
 
+extraction_finished=false
+multi_task_finished=false
 doc_finished=false
 sent_finished=false
-tok_finished=false
-
-# # TODO : Find a better regex, do it in one sed
-# # If RUN_DOC is true, this file will be empty
-# rm "$output"positive_filenames.txt # clear out previous run's file if there is any
-# echo "filename" >> "$output"positive_filenames.txt
-# # find $input -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
-# # TODO : Filenames with "'" char can be written in positive_filenames.txt. When reading this in sent_level.nf and tok_level.nf, does this cause problems?
-# find $input -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
 
 # ******** RUNNING PIPELINE ********
-if [ "$RUN_DOC" = true ] ; then
-    echo "******** DOCUMENT LEVEL ********"
-    if ! screen -ls | grep -q doc; then
-	screen -S doc -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
-	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
+# TODO: Text extraction may not work atm. Revise it!
+if [ "$do_text_extraction" = true ] ; then
+    echo "******** TEXT EXTRACTION ********"
+    nextflow text_exraction.nf -params-file params.json && extraction_finished=true ;
+    if [ "$extraction_finished" = false ] ; then
+	echo "Error occured during text extraction. Aborting pipeline!"
+	exit 3
+    fi
+fi
+
+process_folder=$input
+if [ "$RUN_MULTI_TASK" = true ] ; then
+    process_folder=$output
+    echo "******** MULTI TASK ********"
+    if ! screen -ls | grep -q multi_task; then
+	screen -S multi_task -dm python $prefix/bin/multi_task_classifier/multi_task_classifier_batch_flask.py --gpu_number $gpu_multi_task
 	sleep 30
     fi
-    nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
-    if [ "$doc_finished" = false ] ; then
-	echo "Error occured during Document level. Aborting pipeline!"
-	exit 1
+    nextflow multi_task.nf -params-file params.json && killall screen &&  multi_task_finished=true ;
+    if [ "$multi_task_finished" = false ] ; then
+	echo "Error occured during Multi Task. Aborting pipeline!"
+	exit 3
     fi
-    rm "$output"positive_filenames.txt
-    echo "filename" >> "$output"positive_filenames.txt
-    # find $output -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
-    find $output -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$output"positive_filenames.txt
 fi
+
+
+rm "$process_folder"positive_filenames.txt # clean out previous run's file if there is any
+# TODO : Find a better regex, do it in one sed
+# TODO : Filenames with "'" char can be written in positive_filenames.txt. When reading this in sent_level.nf and tok_level.nf, does this cause problems?
+find $process_folder -type f -name "*.json" -print0 | xargs -0 grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$process_folder"positive_filenames.txt
+# find $process_folder -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$process_folder"positive_filenames.txt
+
+
+# # TODO: Fix document level as well
+# if [ "$RUN_DOC" = true ] ; then
+#     echo "******** DOCUMENT LEVEL ********"
+#     if ! screen -ls | grep -q violent; then
+# 	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
+# 	# screen -S urban -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
+# 	sleep 30
+#     fi
+#     nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
+#     if [ "$doc_finished" = false ] ; then
+# 	echo "Error occured during Document level. Aborting pipeline!"
+# 	exit 1
+#     fi
+# fi
 
 if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
@@ -100,23 +116,6 @@ if [ "$RUN_SENT" = true ] ; then
     if [ "$sent_finished" = false ] ; then
 	echo "Error occured during Sentence level. Aborting pipeline!"
 	exit 2
-    fi
-fi
-
-if [ "$RUN_TOK" = true ] ; then
-    echo "******** TOKEN LEVEL ********"
-    if $do_coreference && ! screen -ls | grep -q coreference; then
-	screen -S coreference -dm python $prefix/bin/coreference/coreference_flask.py --gpu_number $gpu_coreference
-	# TODO : sleep 15 here?
-    fi
-    if ! screen -ls | grep -q tok; then
-	screen -S tok -dm python $prefix/bin/multi_task_classifier/multi_task_classifier_batch_flask.py --gpu_number $gpu_token --gpu_number_place "$gpu_number_place" --language $source_lang
-	sleep 30
-    fi
-    nextflow multi_task.nf -params-file params.json && killall screen &&  tok_finished=true ;
-    if [ "$tok_finished" = false ] ; then
-	echo "Error occured during Token level. Aborting pipeline!"
-	exit 3
     fi
 fi
 

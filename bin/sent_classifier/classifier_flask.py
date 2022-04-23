@@ -1,20 +1,13 @@
 import os
 import numpy
-from pathlib import Path
 import torch
 import argparse
-from pytorch_pretrained_bert.modeling import BertForSequenceClassification
-# Import the framework
-from flask import Flask, g
-from flask_restful import Resource, Api, reqparse
-# Create an instance of Flask
-app = Flask(__name__)
+from transformers import AutoModel, AutoTokenizer
+import flask
+from flask_restful import Resource, Api
 
-# Create the API
-api = Api(app)
-
-PYTORCH_PRETRAINED_BERT_CACHE = Path(os.getenv('PYTORCH_PRETRAINED_BERT_CACHE',
-                                               Path.home() / '.pytorch_pretrained_bert'))
+app = flask.Flask(__name__) # Create an instance of Flask
+api = Api(app) # Create the API
 
 @app.route("/")
 def index():
@@ -31,21 +24,16 @@ def index():
         return "<html><body><p>classifier is not loaded</p></body></html>"
         # return markdown.markdown("classifier is not loaded")
 
-def prepare_data(sentences, max_seq_length):
-    input_ids_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
-    input_mask_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
-    segment_ids_all = torch.zeros((len(sentences), max_seq_length), dtype=torch.long)
-    for i,input_ids in enumerate(sentences):
-        input_mask = [1] * len(input_ids)
-        input_ids = input_ids + [0] * (max_seq_length - len(input_ids))
-        input_mask = input_mask + [0] * (max_seq_length - len(input_mask))
-        input_ids = torch.tensor(input_ids, dtype=torch.long)
-        input_mask = torch.tensor(input_mask, dtype=torch.long)
+def prepare_data(sentences, max_seq_length, has_token_type_ids=False):
+    encoded_input = tokenizer(sentences, padding="max_length", truncation=True,
+                              max_length=max_seq_length)
+    input_ids = torch.tensor(encoded_input["input_ids"], dtype=torch.long)
+    input_mask = torch.tensor(encoded_input["attention_mask"], dtype=torch.long)
+    if has_token_type_ids:
+        token_type_ids = torch.tensor(encoded_input["token_type_ids"], dtype=torch.long)
+        return input_ids, input_mask, token_type_ids
 
-        input_ids_all[i,:] = input_ids
-        input_mask_all[i,:] = input_mask
-
-    return input_ids_all, input_mask_all, segment_ids_all
+    return input_ids, input_mask
 
 def get_args():
     '''
@@ -60,101 +48,118 @@ def get_args():
     args = parser.parse_args()
     return(args)
 
-def predict(input_ids, input_mask, segment_ids, model, device):
+def predict(input_ids, input_mask, encoder, classifier, device):
     input_ids = input_ids.to(device)
     input_mask = input_mask.to(device)
-    segment_ids = segment_ids.to(device)
 
-    logits = model(input_ids, segment_ids, input_mask)
+    with torch.no_grad():
+        embeddings = encoder(input_ids, attention_mask=input_mask)[1]
+        logits = classifier(embeddings)
+
     logits = logits.detach().cpu().numpy()
     labels = numpy.argmax(logits, axis=1)
-    return labels.tolist()
+    return labels
 
 class queryList(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-#        parser.add_argument('identifier', required=True)
-        parser.add_argument('sentences', required=False, type=str, action='append', default=[])
-        parser.add_argument('output', required=False)
-        args = parser.parse_args()
+        args = flask.request.get_json(force=True)
 
-        sentences = [[int(tok) for tok in token_ids.split()] for token_ids in args['sentences']]
-        input_ids, input_mask, segment_ids = prepare_data(sentences, max_seq_length)
+        input_ids, input_mask = prepare_data(args["sentences"], max_seq_length)
 
-        output_sem = predict(input_ids, input_mask, segment_ids, model_sem, device_trigger)
-        output_part_sem = predict(input_ids, input_mask, segment_ids, model_part_sem, device_part)
-        output_org_sem = predict(input_ids, input_mask, segment_ids, model_org_sem, device_org)
+        trig_out = predict(input_ids, input_mask, trig_encoder, trig_classifier, trig_device)
+        part_out = predict(input_ids, input_mask, part_encoder, part_classifier, part_device)
+        org_out = predict(input_ids, input_mask, org_encoder, org_classifier, org_device)
 
-        args["trigger_sem"] = output_sem # trigger_sem_label_list[output_sem].tolist()
-        args["part_sem"] = output_part_sem # partic_sem_label_list[output_part_sem].tolist()
-        args["org_sem"] = output_org_sem # org_sem_label_list[output_org_sem].tolist()
-        # NOTE : Note that we are returning int values here not the actual label strings even though we have the label lists. This is because of the "r+" trick in sent_classifier.py. If the written text's length is smaller than the read text's length, we would be in trouble (For example; if a label got changed with a label that has less characters in it). So in order to prevent this we use integers, and we can make them strings again at postprocessing
-        return args, 201
+        out_data = {}
+        out_data["trigger_sem"] = trig_label_list[trig_out].tolist()
+        out_data["part_sem"] = part_label_list[part_out].tolist()
+        out_data["org_sem"] = org_label_list[org_out].tolist()
+        return out_data, 201
 
-#gloabl configuration
-max_seq_length = 128
+#### Global configuration
 HOME=os.getenv("HOME")
-bert_model = HOME+ "/.pytorch_pretrained_bert/bert-base-uncased.tar.gz"
-# device_cpu = torch.device("cpu")
-
+max_seq_length = 128
+encoder_pretrained_model = "sentence-transformers/paraphrase-xlm-r-multilingual-v1"
+tokenizer = AutoTokenizer.from_pretrained(encoder_pretrained_model)
 args=get_args()
+####
+
+# TODO: Could have just merged the encoder and classifier parts of the models into 1 model.
 
 #### Trigger Semantic Categorization ####
-trigger_sem_label_list = numpy.array(['arm_mil', 'demonst', 'ind_act', 'group_clash'])
-trigger_sem_model = HOME+"/.pytorch_pretrained_bert/sem_cats_128.pt"
-num_labels_sem = len(trigger_sem_label_list)
-model_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem)
+trig_label_list = numpy.array(["Demonstration", "Armed Militancy", "Group Clash",
+                               "Industrial Action", "Other"])
+trig_encoder_path = HOME+"/.pytorch_pretrained_bert/multilingual_trig_sem_encoder.pt"
+trig_classifier_path = HOME+"/.pytorch_pretrained_bert/multilingual_trig_sem_classifier.pt"
 
-model_sem.load_state_dict(torch.load(trigger_sem_model, map_location='cpu'))
+trig_encoder = AutoModel.from_pretrained(encoder_pretrained_model)
+# trig_classifier = MLP(trig_encoder.config.hidden_size, trig_encoder.config.hidden_size * 4,
+#                       len(trig_label_list))
+trig_classifier = torch.nn.Linear(trig_encoder.config.hidden_size, len(trig_label_list))
+
 gpu_range = args.gpu_number_tsc.split(",")
-if len(gpu_range) == 1:
-    device_trigger = torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range) >= 2:
+trig_device = torch.device("cuda:{0}".format(int(gpu_range[0])))
+trig_encoder.load_state_dict(torch.load(trig_encoder_path, map_location=trig_device))
+trig_classifier.load_state_dict(torch.load(trig_classifier_path, map_location=trig_device))
+if len(gpu_range) >= 2:
     device_ids = [int(x) for x in gpu_range]
-    device_trigger = torch.device("cuda:{0}".format(int(device_ids[0])))
-    model_sem = torch.nn.DataParallel(model_sem,device_ids=device_ids,output_device=device_trigger, dim=0)
+    trig_encoder = torch.nn.DataParallel(trig_encoder, device_ids=device_ids)
 
-model_sem.to(device_trigger)
-model_sem.eval()
+trig_encoder.to(trig_device)
+trig_classifier.to(trig_device)
+trig_encoder.eval()
+trig_classifier.eval()
 # ######
 
 # ### Participant Semantic Categorization ###
-part_sem_model_path = HOME+"/.pytorch_pretrained_bert/part_sem_cats_128.pt"
-part_sem_label_list = ['halk', 'militan', 'aktivist', 'köylü', 'öğrenci', 'siyasetçi', 'profesyonel', 'işçi', 'esnaf/küçük üretici', "No"]
-num_labels_sem_part = len(part_sem_label_list)
-model_part_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_sem_part)
+part_label_list = numpy.array(["Peasant", "Proletariat", "Professional", "Student", "Masses",
+                               "Politician", "Activist", "Militant", "Other", "No"])
+part_encoder_path = HOME+"/.pytorch_pretrained_bert/multilingual_part_sem_encoder.pt"
+part_classifier_path = HOME+"/.pytorch_pretrained_bert/multilingual_part_sem_classifier.pt"
 
-model_part_sem.load_state_dict(torch.load(part_sem_model_path, map_location='cpu'))
+part_encoder = AutoModel.from_pretrained(encoder_pretrained_model)
+# part_classifier = MLP(part_encoder.config.hidden_size, part_encoder.config.hidden_size * 4,
+#                       len(part_label_list))
+part_classifier = torch.nn.Linear(part_encoder.config.hidden_size, len(part_label_list))
+
 gpu_range = args.gpu_number_psc.split(",")
-if len(gpu_range) == 1:
-    device_part = torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range) >= 2:
+part_device = torch.device("cuda:{0}".format(int(gpu_range[0])))
+part_encoder.load_state_dict(torch.load(part_encoder_path, map_location=part_device))
+part_classifier.load_state_dict(torch.load(part_classifier_path, map_location=part_device))
+if len(gpu_range) >= 2:
     device_ids = [int(x) for x in gpu_range]
-    device_part = torch.device("cuda:{0}".format(int(device_ids[0])))
-    model_part_sem = torch.nn.DataParallel(model_part_sem,device_ids=device_ids,output_device=device_part, dim=0)
+    part_encoder = torch.nn.DataParallel(part_encoder, device_ids=device_ids)
 
-model_part_sem.to(device_part)
-model_part_sem.eval()
+part_encoder.to(part_device)
+part_classifier.to(part_device)
+part_encoder.eval()
+part_classifier.eval()
 # #####
 
 # ### Organizer Semantic Categorization ###
-org_sem_model_path = HOME+"/.pytorch_pretrained_bert/org_sem_cats_128.pt"
-org_sem_label_list = ['Militant_Organization', 'Political_Party', 'Chambers_of_Professionals', 'Labor_Union', 'Grassroots_Organization', "No"]
-num_labels_org_sem = len(org_sem_label_list)
-model_org_sem = BertForSequenceClassification.from_pretrained(bert_model, PYTORCH_PRETRAINED_BERT_CACHE, num_labels=num_labels_org_sem)
+org_label_list = numpy.array(["Political Party", "Grassroots Organization", "Labor Union",
+                              "Militant Organization", "Chambers of Professionals", "No"])
+org_encoder_path = HOME+"/.pytorch_pretrained_bert/multilingual_org_sem_encoder.pt"
+org_classifier_path = HOME+"/.pytorch_pretrained_bert/multilingual_org_sem_classifier.pt"
 
-model_org_sem.load_state_dict(torch.load(org_sem_model_path, map_location='cpu'))
+org_encoder = AutoModel.from_pretrained(encoder_pretrained_model)
+# org_classifier = MLP(org_encoder.config.hidden_size, org_encoder.config.hidden_size * 4,
+#                       len(org_label_list))
+org_classifier = torch.nn.Linear(org_encoder.config.hidden_size, len(org_label_list))
+
 gpu_range = args.gpu_number_osc.split(",")
-if len(gpu_range) == 1:
-    device_org = torch.device("cuda:{0}".format(int(gpu_range[0])))
-elif len(gpu_range) >= 2:
+org_device = torch.device("cuda:{0}".format(int(gpu_range[0])))
+org_encoder.load_state_dict(torch.load(org_encoder_path, map_location=org_device))
+org_classifier.load_state_dict(torch.load(org_classifier_path, map_location=org_device))
+if len(gpu_range) >= 2:
     device_ids = [int(x) for x in gpu_range]
-    device_org = torch.device("cuda:{0}".format(int(device_ids[0])))
-    model_org_sem = torch.nn.DataParallel(model_org_sem,device_ids=device_ids,output_device=device_part, dim=0)
+    org_encoder = torch.nn.DataParallel(org_encoder, device_ids=device_ids)
 
-model_org_sem.to(device_org)
-model_org_sem.eval()
+org_encoder.to(org_device)
+org_classifier.to(org_device)
+org_encoder.eval()
+org_classifier.eval()
 # #####
 
 api.add_resource(queryList, '/queries')
-app.run(host='0.0.0.0', port=4999, debug=True)
+app.run(host='0.0.0.0', port=4999, debug=False)

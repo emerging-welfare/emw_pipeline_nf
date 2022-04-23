@@ -11,14 +11,14 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(prog='violent_classifier.py',
                                      description='Violent FLASK Classififer Application ')
-    parser.add_argument('--input_file', help="Input file")
+    parser.add_argument('--input_files', help="Input filenames")
     parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
 
     return(args)
 
 def request(id,text):
-    r = requests.post(url = "http://localhost:4996/queries", json={'identifier':id,'text':text})
+    r = requests.post(url = "http://localhost:4998/queries", json={'identifier':id,'text':text})
     return json.loads(r.text)
 
 

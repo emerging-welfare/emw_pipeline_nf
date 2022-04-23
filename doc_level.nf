@@ -1,77 +1,28 @@
 #!/usr/bin/env nextflow
 
-// println("input path is set to $params.input")
-// println("outdir path is set to $params.outdir")
-// println("source lang is set to $params.source_lang")
-// println("source is set to $params.source")
-// println("document batchsize is set to $params.doc_batchsize")
-// println("token batchisize is set to $params.token_batchsize")
-// println("perfix is set to $params.prefix" )
-// println("classifier is first is  $params.classifier_first")
-
-html_channel = Channel.fromPath(params.input)
-println(params.input)
-
-if (!params.classifier_first) {
-
-process extract {
-   //errorStrategy 'ignore'
-   input:
-       file(filename) from html_channel
-   output:
-       stdout(out_json) into extract_out
-   script:
-	def asd = ".json"
-	def file = new File(params.outdir + filename + ".json")
-	if ( file.exists() )
-	"""
-	    echo '"$filename$asd"'
-	"""
-	else
-       """
-	    python3 $params.extractor_script_path --input_file "$params.input_dir/$filename" --out_dir $params.outdir
-	"""
+// If we did run multi_task then outdir contains the stuff we need.
+input_dir = params.input_dir
+filename_wildcard = params.filename_wildcard
+if (params.RUN_MULTI_TASK || params.RUN_SENT) {
+   input_dir = params.outdir // params.input_dir = params.outdir doesn't work for some reason
+   filename_wildcard = "*.json"
 }
 
-
-process classifier {
-    // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-    // errorStrategy 'ignore'
-    input:
-	val(in_json) from extract_out.collate(params.doc_batchsize)
-    output:
-        stdout(out_json) into classifier_out
-    script:
-    """
-    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir
-    """
-}
-
+if (params.doc_cascaded) {
+    json_channel = Channel.fromPath(params.outdir + "positive_filenames.txt")
+                          .splitCsv(header:false).flatMap { it }
 }
 else {
-
-process first_classifier {
-    // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
-    // errorStrategy 'ignore'
-    input:
-	file(in_json) from html_channel.collate(params.doc_batchsize)
-    output:
-        stdout(out_json) into classifier_out
-    script:
-    """
-    python3 $params.prefix/bin/classifier_batch.py --input_files "$in_json" --out_dir $params.outdir --first
-    """
-}
-
+    json_channel = Channel.fromPath(input_dir + filename_wildcard, relative: true)
 }
 
 process violent_classifier {
     // errorStrategy { try { if (in_json == null) { return 'ignore' }; for (String s in in_json) {s = s.replaceAll("\\[QUOTE\\]", "'"); data = jsonSlurper.parseText(s); new File(params.outdir + data["id"] + "json.preproc").write(s, "UTF-8") } } catch(Exception ex) { println("Could not output json!") }; return 'ignore' }
     // errorStrategy 'ignore'
     input:
-	val(in_json) from classifier_out.flatMap { it.split(" ") }
+	val(in_json) from json_channel.collate(params.doc_batchsize)
     script:
     """
-    python3 $params.prefix/bin/violent_classifier.py --input_file "$in_json" --out_dir $params.outdir
+    python3 $params.prefix/bin/violent_classifier.py --input_files "$in_json" --out_dir $params.outdir
     """
 }

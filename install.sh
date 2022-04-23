@@ -1,3 +1,5 @@
+# TODO: Update this! At least the download links for models!
+
 # exit when any command fails
 set -e
 # keep track of the last executed command

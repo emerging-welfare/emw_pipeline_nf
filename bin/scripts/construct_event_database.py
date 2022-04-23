@@ -6,6 +6,7 @@ from geopy.extra.rate_limiter import RateLimiter
 from nltk.corpus import stopwords
 import os
 import re
+import unicodedata
 
 """
 This script constructs an event database from the given output of the pipeline.
@@ -34,11 +35,11 @@ def get_args():
     parser.add_argument('-f', '--out_folder', help="Output folder")
     parser.add_argument('-p', '--place_folder', help="A folder that contains state_alternatives.tsv, district_alternatives.tsv, foreign_alternatives.tsv and district_coords_dict.json for target country.")
     parser.add_argument('--sent_cascade', help="If true: Negative sentences' token labels are negative. false/true", default="false", choices=["false", "true"])
-    parser.add_argument('--check_extracted_first', help="When doing geocoding, whether to check for places in extracted places first, rather than html places. false/true", default="false", choices=["false", "true"])
+    parser.add_argument('--check_extracted_first', help="When doing geocoding, whether to check for places in extracted places first, rather than html places. false/true", default="true", choices=["false", "true"])
     parser.add_argument('--internal', help="If the output is for internal use only. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--dist_has_locality', help="Whether district_dict_coords.json has locality key for every item. false/true", default="false", choices=["false", "true"])
-    parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa"])
+    parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa", "brazil"])
     parser.add_argument('--batch_name', help="Prefix to be used when assigning ids to events.")
 
     args = parser.parse_args()
@@ -49,6 +50,9 @@ def get_args():
     args["internal"] = get_args_boolean(args["internal"])
     args["debug"] = get_args_boolean(args["debug"])
     args["dist_has_locality"] = get_args_boolean(args["dist_has_locality"])
+    args["target_language"] = "english"
+    if args["target_country"] == "brazil":
+        args["target_language"] = "portuguese"
 
     return(args)
 
@@ -106,6 +110,9 @@ def get_coords_from_dict(dist_name, date):
         return 0
 
 def get_place_coordinates(place_name, date):
+    place_name = unicodedata.normalize("NFKD", place_name)
+    place_name = place_name.replace(' , ', ', ')
+
     global all_processed_place_names, state_name_fail, dist_name_success, geopy_success, not_found_fail, geopy_dist_name_success, geopy_dist_name_fail, ignore_list_fail
     all_processed_place_names += 1
 
@@ -137,7 +144,7 @@ def get_place_coordinates(place_name, date):
             location = None
 
         if location != None:
-            location = {"latitude": location.latitude, "longitude": location.longitude, "address": location.address}
+            location = {"latitude": location.latitude, "longitude": location.longitude, "address": unicodedata.normalize("NFKD", location.address)}
 
         geopy_cache[place_name] = location # Add to cache even if it is None
 
@@ -182,11 +189,41 @@ def get_place_coordinates(place_name, date):
 
             return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
 
+    elif args["target_country"] == "brazil":
+        if location != None and \
+           location["address"].lower().endswith("brasil") and \
+           len(location["address"].lower().split(", ")) > 4:
+
+            splitted_address = location["address"].lower().split(", ")
+            # if there is a any district name in location["adress"], its length is at least 5 or 4
+            # depending on second last item being all numbers.
+            min_splits = 5 if re.search(r"^[^a-z]+$", splitted_address[-2]) else 4
+            if len(splitted_address) >= min_splits:
+                geopy_places.append(place_name)
+                geopy_success += 1
+                # NOTE: Since these are in reversed order, we first match with the more local place.
+                geopy_names = [a.lower() for a in reversed(splitted_address[:min_splits-1])] # Up to state names
+                for name in geopy_names:
+                    name = re.sub(r"^(região geográfica imediata|região metropolitana|região geográfica intermediária) d[eo] ", "", name)
+                    dist_name = dist_alts.get(name, "")
+                    if dist_name != "":
+                        geopy_dist_name_success += 1
+                        coords, state_name = get_coords_from_dict(dist_name, date)
+                        return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
+
+                geopy_dist_name_fail += 1
+                with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
+                    text_to_write = place_name + "    " + location["address"] + "\n"
+                    f.write(text_to_write)
+
+                return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
+
     not_found_names.append(place_name)
     not_found_fail += 1
     return "Error", "Not Found"
 
 def is_foreign_country(place_name):
+    place_name = unicodedata.normalize("NFKD", place_name)
     if foreign_alts.get(place_name, "") != "":
         return True
     return False
@@ -199,20 +236,11 @@ def sorted_nicely(l):
     return sorted(l, key=alphanum_key)
 
 
-# GLOBAL STUFF
-event_category_dict = {"demonst": "Demonstration", "arm_mil": "Armed Militancy", "group_clash": "Group Clash", "ind_act": "Industrial Action"}
-organizer_category_dict = {"Grassroots_Organization": "Grassroots Organization", "Political_Party": "Political Party",
-                           "Chambers_of_Professionals": "Chambers of Professionals", "Labor_Union": "Labor Union",
-                           "Militant_Organization": "Militant Organization"}
-participant_category_dict = {"halk": "Masses", "militan": "Militant", "aktivist": "Activist",
-                             "köylü": "Peasant", "öğrenci": "Student",
-                             "siyasetçi": "Politician", "profesyonel": "Professional",
-                             "işçi": "Proletariat", "esnaf/küçük üretici": "Petty Bourgeoisie"}
 # TODO: This is a pretty sloppy way to do this. But other ways bring unneccesary complexity.
 all_possible_census_years = ["1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998",
                              "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007",
                              "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016",
-                             "2017", "2018", "2019", "2020", "2021"]
+                             "2017", "2018", "2019", "2020", "2021", "2022"]
 
 # For Statistics
 total_documents = 0
@@ -270,7 +298,7 @@ else:
 
 # Some list I created before. Does not really represent the extracted place names (except 'india' and maybe nltk stopwords)
 # Make sure none of the alternative names that we have is in this list!
-all_ignore_list = stopwords.words('english') + geopy_false_positives + ignore_list + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2020)] + ["0" + str(i) for i in range(1,10)]
+all_ignore_list = stopwords.words(args["target_language"]) + geopy_false_positives + ignore_list + [str(i) for i in range(1000)] + [str(i) for i in range(1980,2023)] + ["0" + str(i) for i in range(1,10)]
 
 geolocator = Nominatim(user_agent="GLOCON")
 geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # limit rate to 1 second
@@ -304,7 +332,7 @@ if __name__ == "__main__":
                 no_pos_sent += 1
                 if args["debug"]:
                     debug_data["pred_clusters"] = []
-                    debug_file.write(json.dumps(debug_data) + "\n")
+                    debug_file.write(json.dumps(debug_data, ensure_ascii=False) + "\n")
 
                 continue
 
@@ -319,6 +347,7 @@ if __name__ == "__main__":
         # Html place
         html_latitude, html_geopy_lat = 0.0, 0.0
         html_place = json_data.get("html_place", "").lower() # might not exist in data
+        html_place = unicodedata.normalize("NFKD", html_place)
 
         if args["debug"]:
             debug_data["html_place"] = html_place
@@ -332,7 +361,7 @@ if __name__ == "__main__":
             if is_foreign_country(html_place): # Discard whole document if foreign name
                 if args["debug"]:
                     debug_data["html_place_status"] = "Foreign Html Place"
-                    debug_file.write(json.dumps(debug_data) + "\n")
+                    debug_file.write(json.dumps(debug_data, ensure_ascii=False) + "\n")
 
                 continue
 
@@ -410,7 +439,7 @@ if __name__ == "__main__":
             if args["check_extracted_first"] or html_latitude == 0.0: # if html place failed or was non-existent (If check_extracted_places_first is True enters here regardless!)
                 # Check if any place name we found is from a foreign country. If so, discard this event!
                 if any([is_foreign_country(place_name) for place_name in all_place]):
-                    # TODO : Should we really discard this event?
+                    # TODO(New) : Should we really discard this event?
                     foreign_place_name += 1
 
                     if args["debug"]:
@@ -532,7 +561,7 @@ if __name__ == "__main__":
                                 # Write out whole json and which event that we could not find any place for
                                 with open(args["out_folder"] + "/nothing_found.json", "a", encoding="utf-8") as f:
                                     json_data["no_name_cluster"] = cluster
-                                    f.write(json.dumps(json_data) + "\n")
+                                    f.write(json.dumps(json_data, ensure_ascii=False) + "\n")
 
                                     # TODO : Also need all of the places for the whole document.
                                     # But doing this would slow the script too much !
@@ -553,7 +582,7 @@ if __name__ == "__main__":
                             with open(args["out_folder"] + "/only_state_found.json", "a", encoding="utf-8") as f:
                                 json_data["no_name_cluster"] = cluster
                                 json_data["state_name"] = curr_state_name
-                                f.write(json.dumps(json_data) + "\n")
+                                f.write(json.dumps(json_data, ensure_ascii=False) + "\n")
 
                                 # TODO : Also need all of the places for the whole document.
                                 # But doing this would slow the script too much !
@@ -600,7 +629,7 @@ if __name__ == "__main__":
             out_json["year"] = int(json_data["html_year"])
             out_json["month"] = int(json_data["html_month"])
             out_json["day"] = int(json_data["html_day"])
-            out_json["urbanrural"] = json_data["urbanrural"]
+            # out_json["urbanrural"] = json_data["urbanrural"] # TODO(new): uncomment this later
 
             if curr_place_name:
                 out_json["coordinate_dates"] = census_year
@@ -610,7 +639,7 @@ if __name__ == "__main__":
                 out_json["coordinate_dates"] = "geopy-2.0-2020/08"
 
             # Semantic stuff
-            out_json["eventcategory"] = event_category_dict[trig_sem.most_common(1)[0][0]]
+            out_json["eventcategory"] = trig_sem.most_common(1)[0][0]
 
             # If there is no sentence predicted with our predefined categories, then this
             # event's category is "Other"
@@ -618,7 +647,7 @@ if __name__ == "__main__":
                 out_json["participant0category"] = "Other"
             else:
                 for j,part in enumerate(part_sem.most_common(4)):
-                    out_json["participant" + str(j) + "category"] = participant_category_dict[part[0]]
+                    out_json["participant" + str(j) + "category"] = part[0]
 
             # If there is no sentence predicted with our predefined categories, then this
             # event's category is "Other"
@@ -626,7 +655,7 @@ if __name__ == "__main__":
                 out_json["organizer0category"] = "Other"
             else:
                 for j,org in enumerate(org_sem.most_common(9)):
-                    out_json["organizer" + str(j) + "category"] = organizer_category_dict[org[0]]
+                    out_json["organizer" + str(j) + "category"] = org[0]
 
             # Other stuff
             out_json["triggers"] = triggers
@@ -635,7 +664,7 @@ if __name__ == "__main__":
             out_json["targets"] = targets
 
             out_json["title"] = json_data.get("title", "")
-            out_json["violent"] = "violent" if json_data["is_violent"] == 1 else "non-violent"
+            # out_json["violent"] = "violent" if json_data["is_violent"] == 1 else "non-violent" # TODO(new): uncomment this later
             doc_text = " ".join([sent for sent in json_data["sentences"]])
             out_json["text_snippet"] = doc_text[:(len(doc_text)//10)] # First tenth of the text
             out_json["url"] = filename_to_url(json_data["id"])
@@ -647,25 +676,25 @@ if __name__ == "__main__":
 
             # TODO : eventethnicity, eventideology
 
-            out_file.write(json.dumps(out_json) + "\n")
+            out_file.write(json.dumps(out_json, ensure_ascii=False) + "\n")
 
         if args["debug"]:
             if debug_clusters:
                 debug_data["clusters_info"] = debug_clusters
-            debug_file.write(json.dumps(debug_data) + "\n")
+            debug_file.write(json.dumps(debug_data, ensure_ascii=False) + "\n")
 
     input_file.close()
     out_file.close()
 
     # Write out geopy cache
     with open(args["place_folder"] + "/geopy_cache.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(geopy_cache))
+        f.write(json.dumps(geopy_cache, ensure_ascii=False))
 
     with open(args["out_folder"] + "/not_found_names.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(Counter(not_found_names)))
+        f.write(json.dumps(Counter(not_found_names), ensure_ascii=False))
 
     with open(args["out_folder"] + "/geopy_places.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(Counter(geopy_places)))
+        f.write(json.dumps(Counter(geopy_places), ensure_ascii=False))
 
 print("Out of %d documents processed, %d had no positive sentence and %d had only one positive sentence." %(total_documents, no_pos_sent, one_pos_sent))
 print()

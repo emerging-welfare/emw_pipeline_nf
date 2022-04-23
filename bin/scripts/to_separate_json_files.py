@@ -16,6 +16,8 @@ input_file = open(input_json_file, "r", encoding="utf-8")
 for line in input_file:
     d = json.loads(line)
     filename = re.sub(r"(\.ece\d?|\.json|\.html?|\.cms|)$", r".json", d["id"])
+    if len(filename) > 255:
+        continue
     if not os.path.isfile(out_json_folder + "/" + filename):
         with open(out_json_folder + "/" + filename, "w", encoding="utf-8") as f:
             f.write(line)
