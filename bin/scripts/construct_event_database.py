@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument('--internal', help="If the output is for internal use only. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--debug', help="Debug version. false/true", default="false", choices=["false", "true"])
     parser.add_argument('--dist_has_locality', help="Whether district_dict_coords.json has locality key for every item. false/true", default="false", choices=["false", "true"])
-    parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa", "brazil"])
+    parser.add_argument('--target_country', help="Name of the country we are doing the geocoding for. Used solely for geopy.", choices=["india", "south_africa", "brazil", "argentina"])
     parser.add_argument('--batch_name', help="Prefix to be used when assigning ids to events.")
 
     args = parser.parse_args()
@@ -50,9 +50,12 @@ def get_args():
     args["internal"] = get_args_boolean(args["internal"])
     args["debug"] = get_args_boolean(args["debug"])
     args["dist_has_locality"] = get_args_boolean(args["dist_has_locality"])
+
     args["target_language"] = "english"
     if args["target_country"] == "brazil":
         args["target_language"] = "portuguese"
+    elif args["target_country"] == "argentina":
+        args["target_language"] = "spanish"
 
     return(args)
 
@@ -62,8 +65,7 @@ def get_args_boolean(curr_arg):
     elif curr_arg == "true":
         return True
     else:
-        print('Something wrong with argparse!!!')
-        return -1
+        raise('Choices for this are limited to "false" and "true" !!!')
 
 def read_alternatives_tsv(tsv_filename): # returns a dict("alternative_name"->"place_name")
     with open(tsv_filename, "r", encoding="utf-8") as f:
@@ -192,7 +194,7 @@ def get_place_coordinates(place_name, date):
     elif args["target_country"] == "brazil":
         if location != None and \
            location["address"].lower().endswith("brasil") and \
-           len(location["address"].lower().split(", ")) > 4:
+           len(location["address"].lower().split(", ")) >= 4:
 
             splitted_address = location["address"].lower().split(", ")
             # if there is a any district name in location["adress"], its length is at least 5 or 4
@@ -217,6 +219,30 @@ def get_place_coordinates(place_name, date):
                     f.write(text_to_write)
 
                 return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
+
+    elif args["target_country"] == "argentina":
+        if location != None and \
+           location["address"].lower().endswith("argentina") and \
+           len(location["address"].lower().split(", ")) >= 3:
+
+            geopy_places.append(place_name)
+            geopy_success += 1
+            # NOTE: Since these are in reversed order, we first match with the more local place.
+            geopy_names = [a.lower() for a in reversed(location["address"].lower().split(", ")[:-2])] # Up to state names
+            for name in geopy_names:
+                name = re.sub(r"^(municipio d[eo] )", "", name)
+                dist_name = dist_alts.get(name, "")
+                if dist_name != "":
+                    geopy_dist_name_success += 1
+                    coords, state_name = get_coords_from_dict(dist_name, date)
+                    return "geopy", coords[1], coords[0], dist_name, state_name, location["latitude"], location["longitude"], location["address"]
+
+            geopy_dist_name_fail += 1
+            with open(args["out_folder"] + "/geopy_outs.txt", "a", encoding="utf-8") as f:
+                text_to_write = place_name + "    " + location["address"] + "\n"
+                f.write(text_to_write)
+
+            return "geopy", location["latitude"], location["longitude"], "", "", location["latitude"], location["longitude"], location["address"]
 
     not_found_names.append(place_name)
     not_found_fail += 1
