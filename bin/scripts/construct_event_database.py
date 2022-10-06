@@ -690,7 +690,7 @@ if __name__ == "__main__":
             out_json["targets"] = targets
 
             out_json["title"] = json_data.get("title", "")
-            # out_json["violent"] = "violent" if json_data["is_violent"] == 1 else "non-violent" # TODO(new): uncomment this later
+            out_json["violent"] = json_data.get("violent", "")
             doc_text = " ".join([sent for sent in json_data["sentences"]])
             out_json["text_snippet"] = doc_text[:(len(doc_text)//10)] # First tenth of the text
             out_json["url"] = filename_to_url(json_data["id"])

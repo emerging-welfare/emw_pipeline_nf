@@ -17,6 +17,8 @@ def get_args():
     parser.add_argument('--out_dir', help="Output folder")
     parser.add_argument('--sent_batchsize', type=int,
                         help="How many sentence to process in a single minibatch")
+    parser.add_argument('--sent_cascaded', default=False, action="store_true",
+                        help="Do we process negatively predicted sentences?")
     args = parser.parse_args()
 
     return(args)
@@ -37,11 +39,9 @@ def request(sentences):
 if __name__ == "__main__":
     args = get_args()
     files=args.input_files.strip("[ ]").split(", ")
-    # TODO: Is this always True? Do we need to pass sent_cascaded from conf ile to args?
-    sent_cascaded = True
 
     all_jsons = []
-    if sent_cascaded:
+    if args.sent_cascaded:
         all_file_pos_idxs = []
     else:
         all_file_ranges = []
@@ -50,6 +50,7 @@ if __name__ == "__main__":
     all_trig_labels = []
     all_part_labels = []
     all_org_labels = []
+    all_flair_outputs = []
     for file_idx, filename in enumerate(files):
         curr_json = read_from_json(args.input_dir + "/" + filename)
 
@@ -60,7 +61,7 @@ if __name__ == "__main__":
 
         all_jsons.append(curr_json)
 
-        if sent_cascaded:
+        if args.sent_cascaded:
             assert("sent_labels" in curr_json.keys() and len(curr_json["sent_labels"]) == len(curr_sentences))
             curr_pos_idxs = []
             curr_pos_sentences = []
@@ -87,6 +88,8 @@ if __name__ == "__main__":
                 all_trig_labels.extend(rtext["trigger_sem"])
                 all_part_labels.extend(rtext["part_sem"])
                 all_org_labels.extend(rtext["org_sem"])
+                # IMPORTANT NOTE: flair_output may be just an empty list!
+                all_flair_outputs.extend(rtext["flair_output"])
 
             chunk = chunk[i+args.sent_batchsize:] # becomes [] if len(chunk) is a multiple of batchsize
 
@@ -95,9 +98,10 @@ if __name__ == "__main__":
         all_trig_labels.extend(rtext["trigger_sem"])
         all_part_labels.extend(rtext["part_sem"])
         all_org_labels.extend(rtext["org_sem"])
+        all_flair_outputs.extend(rtext["flair_output"])
 
 
-    if sent_cascaded:
+    if args.sent_cascaded:
         lo = 0
         for file_idx, file_pos_idxs in enumerate(all_file_pos_idxs):
             hi = lo + len(file_pos_idxs)
@@ -105,20 +109,27 @@ if __name__ == "__main__":
                 pos_trig_labels = all_trig_labels[lo:hi]
                 pos_part_labels = all_part_labels[lo:hi]
                 pos_org_labels = all_org_labels[lo:hi]
+                pos_flair_outputs = all_flair_outputs[lo:hi]
 
             curr_data = all_jsons[file_idx]
 
             trig_out_labels = numpy.array([-1] * len(curr_data["sentences"]), dtype=object)
             part_out_labels = numpy.array([-1] * len(curr_data["sentences"]), dtype=object)
             org_out_labels = numpy.array([-1] * len(curr_data["sentences"]), dtype=object)
+            out_flair = []
+
             if len(file_pos_idxs) > 0:
                 trig_out_labels[file_pos_idxs] = pos_trig_labels
                 part_out_labels[file_pos_idxs] = pos_part_labels
                 org_out_labels[file_pos_idxs] = pos_org_labels
 
+                for pos_idx, curr_sent_flair_output in zip(file_pos_idxs, pos_flair_outputs):
+                    out_flair.extend([(pos_idx, span[0], span[1]) for span in curr_sent_flair_output])
+
             curr_data["trigger_semantic"] = trig_out_labels.tolist()
             curr_data["participant_semantic"] = part_out_labels.tolist()
             curr_data["organizer_semantic"] = org_out_labels.tolist()
+            curr_data["flair_output"] = out_flair
             write_to_json(curr_data, curr_data["id"], extension="json", out_dir=args.out_dir)
 
             lo = hi
@@ -131,9 +142,15 @@ if __name__ == "__main__":
             curr_trig_labels = all_trig_labels[lo:hi]
             curr_part_labels = all_part_labels[lo:hi]
             curr_org_labels = all_org_labels[lo:hi]
+            curr_flair_outputs = all_flair_outputs[lo:hi]
+
+            out_flair = []
+            for idx, curr_sent_flair_output in enumerate(curr_flair_outputs):
+                out_flair.extend([(idx, span[0], span[1]) for span in curr_sent_flair_output])
 
             curr_data = all_jsons[file_idx]
             curr_data["trigger_semantic"] = curr_trig_labels
             curr_data["participant_semantic"] = curr_part_labels
             curr_data["organizer_semantic"] = curr_org_labels
+            curr_data["flair_output"] = out_flair
             write_to_json(curr_data, curr_data["id"], extension="json", out_dir=args.out_dir)

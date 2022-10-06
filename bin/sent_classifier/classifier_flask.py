@@ -5,6 +5,7 @@ import argparse
 from transformers import AutoModel, AutoTokenizer
 import flask
 from flask_restful import Resource, Api
+import flair
 
 app = flask.Flask(__name__) # Create an instance of Flask
 api = Api(app) # Create the API
@@ -44,9 +45,29 @@ def get_args():
     parser.add_argument('--gpu_number_tsc', help="Insert the gpu number",default='3')
     parser.add_argument('--gpu_number_psc', help="Insert the gpu number, i.e 6 ",default='4')
     parser.add_argument('--gpu_number_osc', help="Insert the gpu number, i.e 6 ",default='5')
+    parser.add_argument('--language', help="Source language. Ex: english")
 
     args = parser.parse_args()
     return(args)
+
+def tag_places_flair(all_sentences):
+    # Place Tagger
+    all_flair_sentences = [flair.data.Sentence(sentence) for sentence in all_sentences]
+    place_tagger.predict(all_flair_sentences)
+
+    all_sent_place_tags = []
+    for flair_sentence in all_flair_sentences:
+        curr_sent_place_tags = []
+        for span in flair_sentence.get_spans("ner"):
+            if span.tag == "LOC":
+                # Ids are 1-indexed for some reason
+                idxs = sorted([tok.idx - 1 for tok in span.tokens])
+                curr_sent_place_tags.append([idxs[0], idxs[-1]]) # start_idx of span and end_idx for span
+
+        all_sent_place_tags.append(curr_sent_place_tags)
+
+    return all_sent_place_tags
+
 
 def predict(input_ids, input_mask, encoder, classifier, device):
     input_ids = input_ids.to(device)
@@ -70,10 +91,16 @@ class queryList(Resource):
         part_out = predict(input_ids, input_mask, part_encoder, part_classifier, part_device)
         org_out = predict(input_ids, input_mask, org_encoder, org_classifier, org_device)
 
+        if place_tagger is not None:
+            place_output = tag_places_flair(args["sentences"])
+        else:
+            place_output = []
+
         out_data = {}
         out_data["trigger_sem"] = trig_label_list[trig_out].tolist()
         out_data["part_sem"] = part_label_list[part_out].tolist()
         out_data["org_sem"] = org_label_list[org_out].tolist()
+        out_data["flair_output"] = place_output
         return out_data, 201
 
 #### Global configuration
@@ -82,6 +109,18 @@ max_seq_length = 128
 encoder_pretrained_model = "sentence-transformers/paraphrase-xlm-r-multilingual-v1"
 tokenizer = AutoTokenizer.from_pretrained(encoder_pretrained_model)
 args=get_args()
+language = args.language
+
+# NOTE: Flair model only works for English and Spanish.
+FLAIR_CACHE_ROOT = HOME +  "/.pytorch_pretrained_bert"
+place_tagger = None
+if language == "english":
+    place_tagger = flair.models.SequenceTagger.load("flair/ner-english-large") # flair/ner-english-fast
+    place_tagger.eval()
+elif language == "spanish":
+    place_tagger = flair.models.SequenceTagger.load("flair/ner-spanish-large") # flair/ner-multi-fast
+    place_tagger.eval()
+
 ####
 
 # TODO: Could have just merged the encoder and classifier parts of the models into 1 model.

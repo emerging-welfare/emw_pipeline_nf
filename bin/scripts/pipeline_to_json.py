@@ -16,13 +16,17 @@ def get_args():
     parser = argparse.ArgumentParser(prog='pipeline_to_json.py')
     parser.add_argument('-i', '--input_file', help="Input file")
     parser.add_argument('-o', '--out_file', help="Output file")
-    parser.add_argument('-d', '--dates_and_places_file', default="" ,help="Dates file. A tsv with filename, date(YYYY/MM/DD) and place columns")
+    parser.add_argument('-s', '--cascade_sent', help="Sentence cascade. false/true", default="false",
+                        choices=["false", "true"])
+    parser.add_argument('-d', '--dates_and_places_file', default="",
+                        help="Dates file. A tsv with filename, date(YYYY/MM/DD) and place columns")
     args = parser.parse_args()
+    args = vars(args)
+    args["cascade_sent"] = args["cascade_sent"] == "true"
 
     return(args)
 
-# TODO: My tokens are no longer a list. They are list of lists
-def postprocess_tokens_and_labels(data):
+def postprocess_tokens_and_labels(data, cascade_sent):
     """
     Handles "token_labels" turning them into spans and placing
     them into corresponding tag dictionaries.
@@ -39,6 +43,9 @@ def postprocess_tokens_and_labels(data):
     prev_token_label = "O"
     start_idx = 0
     for sent_idx, (sent_tokens, sent_token_labels) in enumerate(zip(data["tokens"], data["token_labels"])):
+        if cascade_sent and data["sent_labels"][sent_idx] == 0:
+            continue
+
         for token_idx, (token, token_label) in enumerate(zip(sent_tokens, sent_token_labels)):
             if token_label == "O" and prev_token_label != "O":
                 # Add to corresponding tag dictionary.
@@ -72,14 +79,14 @@ def postprocess_tokens_and_labels(data):
 if __name__ == "__main__":
     args = get_args()
 
-    out_file = open(args.out_file, "w", encoding="utf-8")
-    if args.dates_and_places_file != "":
-        dates_and_places = pd.read_csv(args.dates_and_places_file, sep="\t")
+    out_file = open(args["out_file"], "w", encoding="utf-8")
+    if args["dates_and_places_file"] != "":
+        dates_and_places = pd.read_csv(args["dates_and_places_file"], sep="\t")
         # dates_and_places.filename = dates_and_places.filename.apply(change_extension)
         dates_and_places.loc[dates_and_places.place.isna(), "place"] = ""
 
     # Start postprocessing
-    with open(args.input_file, "r", encoding="utf-8") as input_file:
+    with open(args["input_file"], "r", encoding="utf-8") as input_file:
         for line in input_file: # For each document
             data = json.loads(line)
 
@@ -87,14 +94,16 @@ if __name__ == "__main__":
             data["trigger"], data["participant"], data["organizer"], data["target"], data["fname"], data["etime"], data["place"], data["flair"] = [dict() for _ in range(8)]
             data = postprocess_tokens_and_labels(data)
 
-            # # Flair output
-            # # NOTE : We want to be able to get all spans in a sentence without going
-            # # through all spans in a document. That's why we do this.
-            # for (sent_idx, start_idx, end_idx) in data["flair_output"]:
-            #     data["flair"].setdefault(sent_idx, []).append((start_idx, end_idx))
+            # Flair output
+            # NOTE : We want to be able to get all spans in a sentence without going
+            # through all spans in a document. That's why we do this.
+            if len(data.get("flair_output", [])) > 0:
+                for (sent_idx, start_idx, end_idx) in data["flair_output"]:
+                    data["flair"].setdefault(sent_idx, []).append((start_idx, end_idx))
+                data.pop("flair_output")
 
             # Date and place from html
-            if args.dates_and_places_file != "":
+            if args["dates_and_places_file"] != "":
                 matches = dates_and_places[dates_and_places.url == data["url"]]
                 if len(matches) > 0:
                     data["html_year"], data["html_month"], data["html_day"] = matches.date.iloc[0].split("/")
@@ -106,7 +115,6 @@ if __name__ == "__main__":
 
             # Remove unnecessary keys
             data.pop("token_labels")
-            # data.pop("flair_output")
             data.pop("doc_label")
             data.pop("text")
 
@@ -118,7 +126,7 @@ if __name__ == "__main__":
     Each line is :
     {
         id: "...",
-        violent : 1,
+        violent : "non-violent",
         sent_labels : [0,1,0,0,1,1],
         event_clusters : [[1,4], [5]],
         trigger_semantic : [-1,"demonst",-1,-1,"demonst","group_clash"],
@@ -127,7 +135,7 @@ if __name__ == "__main__":
         tokens: [["A", "bird", "flew", "over", "Marakesh"], [...], ...]
         trigger: {
             1: [(3,3)] # All spans are exclusive
-            3: [(1,2)] # We don't filter these regarding sent_labels yet.
+            3: [(1,2)] # If cascade_sent is false, we don't filter these regarding sent_labels.
             4: [(4,5), (7,7)]
         }
         "participant": {}, # same as trigger

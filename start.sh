@@ -37,8 +37,7 @@ echo '{
     "sent_batchsize":'$sent_batchsize',
     "RUN_MULTI_TASK":'$RUN_MULTI_TASK',
     "RUN_SENT":'$RUN_SENT',
-    "RUN_DOC":'$RUN_DOC',
-    "RUN_POST":'$RUN_POST'
+    "RUN_DOC":'$RUN_DOC'
 }' > params.json
 
 cat params.json
@@ -58,15 +57,15 @@ doc_finished=false
 sent_finished=false
 
 # ******** RUNNING PIPELINE ********
-# TODO: Text extraction may not work atm. Revise it!
-if [ "$do_text_extraction" = true ] ; then
-    echo "******** TEXT EXTRACTION ********"
-    nextflow text_exraction.nf -params-file params.json && extraction_finished=true ;
-    if [ "$extraction_finished" = false ] ; then
-	echo "Error occured during text extraction. Aborting pipeline!"
-	exit 3
-    fi
-fi
+# # TODO: Text extraction may not work atm. Revise it!
+# if [ "$do_text_extraction" = true ] ; then
+#     echo "******** TEXT EXTRACTION ********"
+#     nextflow text_exraction.nf -params-file params.json && extraction_finished=true ;
+#     if [ "$extraction_finished" = false ] ; then
+# 	echo "Error occured during text extraction. Aborting pipeline!"
+# 	exit 3
+#     fi
+# fi
 
 process_folder=$input
 if [ "$RUN_MULTI_TASK" = true ] ; then
@@ -91,26 +90,12 @@ find $process_folder -type f -name "*.json" -print0 | xargs -0 grep '"doc_label"
 # find $process_folder -type f -name "*.json" | grep -v "'" | xargs grep '"doc_label": 1' | sed -r "s/^([^\{]+)\{.*$/\1/g" | sed -r "s/^.*\/([^\/]+):$/\1/g" >> "$process_folder"positive_filenames.txt
 
 
-# # TODO: Fix document level as well
-# if [ "$RUN_DOC" = true ] ; then
-#     echo "******** DOCUMENT LEVEL ********"
-#     if ! screen -ls | grep -q violent; then
-# 	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
-# 	# screen -S urban -dm python $prefix/bin/classifier/classifier_batch_flask.py --gpu_number $gpu_classifier --batch_size $doc_batchsize
-# 	sleep 30
-#     fi
-#     nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
-#     if [ "$doc_finished" = false ] ; then
-# 	echo "Error occured during Document level. Aborting pipeline!"
-# 	exit 1
-#     fi
-# fi
-
+# Run sentence level and flair
 if [ "$RUN_SENT" = true ] ; then
     echo "******** SENTENCE LEVEL ********"
     if ! screen -ls | grep -q sent; then
-	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc
-	sleep 60
+	screen -S sent -dm python  $prefix/bin/sent_classifier/classifier_flask.py --gpu_number_tsc $gpu_number_tsc --gpu_number_psc $gpu_number_psc --gpu_number_osc $gpu_number_osc --language $source_lang
+	sleep 90
     fi
     nextflow sent_level.nf -params-file params.json && killall screen &&  sent_finished=true ;
     if [ "$sent_finished" = false ] ; then
@@ -119,34 +104,20 @@ if [ "$RUN_SENT" = true ] ; then
     fi
 fi
 
-echo "******** ALL LEVELS COMPLETED ********"
-
-if [ "$RUN_POST" = true ] ; then
-    echo "******** RUNNING POSTPROCESSING ********"
-    if [ "$filter_unprotested_doc" = true ] ; then
-	if [ "$filter_unprotested_sentence" = true ] ; then
-	    python $prefix/bin/output_to_csv.py --output_type $out_output_type /
-	    --input_folder $output /
-	    --o $out_name_output_file/
-	    --filter_unprotested_doc /
-	    --filter_unprotested_sentence  --date_key $out_date_key
-	else
-	    python $prefix/bin/output_to_csv.py --output_type $out_output_type /
-	    --input_folder $output /
-	    --o $out_name_output_file/
-	    --filter_unprotested_doc  --date_key $out_date_key
-	fi
-    else
-	python $prefix/bin/output_to_csv.py --output_type $out_output_type --input_folder $output  --o $out_name_output_file  --date_key  $out_date_key
+if [ "$RUN_DOC" = true ] ; then
+    echo "******** DOCUMENT LEVEL ********"
+    if ! screen -ls | grep -q violent; then
+	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
+	sleep 30
     fi
-    # TODO : Make sure to check if this add newlines between jsons. Also handle filenames containing "'".
-    find jsons -type f | grep -v "'" | xargs cat >> output_combined_jsons.json
+    nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;
+    if [ "$doc_finished" = false ] ; then
+	echo "Error occured during Document level. Aborting pipeline!"
+	exit 1
+    fi
 fi
 
-#find jsons -type f | grep -v "'" | xargs cat >> $out_name_output_file.jsons.json && find work -mindepth 1 -type d | xargs -I {} rm -rf {}
-
-# find work -mindepth 1 -type d | xargs -I {} rm -rf {} && rm -r work
-# rm -rf .nextflow*
+echo "******** ALL LEVELS COMPLETED ********"
 
 echo "Ending time"
 date

@@ -22,6 +22,8 @@ debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
 dist_has_locality="true"
 batch_name="lanacion_2022-04-30"
+cascade_sent="true" # "true" if we auto assign "O" to each token of negatively predicted sentences.
+# TODO: cascade_doc as well?
 
 if [[ -d $input_file_or_folder ]]; then # If folder
     echo "Merging jsons files together"
@@ -34,9 +36,9 @@ if [[ -d $input_file_or_folder ]]; then # If folder
 
     echo "Post-processing pipeline output"
     if [[ -f $dates_and_places_file ]]; then
-	python pipeline_to_json.py -i $out_folder/positive_docs.json -o $out_folder/processed_positive_docs.json -d $dates_and_places_file
+	python pipeline_to_json.py -i $out_folder/positive_docs.json -o $out_folder/processed_positive_docs.json -s $cascade_sent -d $dates_and_places_file
     else
-	python pipeline_to_json.py -i $out_folder/positive_docs.json -o $out_folder/processed_positive_docs.json
+	python pipeline_to_json.py -i $out_folder/positive_docs.json -o $out_folder/processed_positive_docs.json -s $cascade_sent
     fi
 
     echo "Post-processing finished. Post-processed file's name : processed_positive_docs.json (Keep this! Might be used later)"

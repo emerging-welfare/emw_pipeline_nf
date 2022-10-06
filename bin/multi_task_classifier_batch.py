@@ -19,6 +19,8 @@ def get_args():
     parser.add_argument('--input_dir', help="Input folder")
     parser.add_argument('--out_dir', help="Output folder")
     parser.add_argument('--language', help="The source language. Ex. 'english'")
+    parser.add_argument('--doc_cascaded', default=False, action="store_true",
+                        help="Do we process negatively predicted documents?")
     args = parser.parse_args()
 
     return(args)
@@ -114,6 +116,8 @@ def clustering_algo(coref_out, pos_idxs, rescoring=True, ignore_lower_part=False
 
 
 if __name__ == "__main__":
+    max_num_sents = 6500 # should be same in multi_task_classifier_batch_flask.py
+
     args = get_args()
     files=args.input_files.strip("[ ]").split(", ")
     jsons = []
@@ -143,6 +147,11 @@ if __name__ == "__main__":
                 assert(len(curr_json["sentences"]) == len(curr_json["tokens"]))
 
             if len(curr_json["tokens"]) > 0:
+                if len(curr_json["sentences"]) > max_num_sents:
+                    curr_json["sentences"] = curr_json["sentences"][:max_num_sents]
+                if len(curr_json["tokens"]) > max_num_sents:
+                    curr_json["tokens"] = curr_json["tokens"][:max_num_sents]
+
                 jsons.append(curr_json)
 
     if len(jsons) != 0:
@@ -164,15 +173,15 @@ if __name__ == "__main__":
                 curr_sent_preds = [int(pred) for pred in sent_preds[i]]
                 curr_doc_pred = int(doc_preds[i])
 
-                # TODO: Maybe we don't process coref_out for negative files if doc_cascaded is true.
                 pred_clusters = []
-                pos_sent_idxs = [i for i,v in enumerate(curr_sent_preds) if int(v) == 1]
-                if len(pos_sent_idxs) > 1: # If we have 0 or 1 pos sentence, we don't need to do coreference.
-                    curr_coref_out = numpy.array(coref_outs[i])
-                    curr_coref_out = curr_coref_out[pos_sent_idxs,:][:,pos_sent_idxs]
-                    pred_clusters = clustering_algo(curr_coref_out, pos_sent_idxs)
-                elif len(pos_sent_idxs) == 1: # TODO: Do we need this here?
-                    pred_clusters = [[pos_sent_idxs[0]]]
+                if (not args.doc_cascaded) or (curr_doc_pred == 1): # Process if we are not cascading or doc pred is 1.
+                    pos_sent_idxs = [i for i,v in enumerate(curr_sent_preds) if int(v) == 1]
+                    if len(pos_sent_idxs) > 1: # If we have 0 or 1 pos sentence, we don't need to do coreference.
+                        curr_coref_out = numpy.array(coref_outs[i])
+                        curr_coref_out = curr_coref_out[pos_sent_idxs,:][:,pos_sent_idxs]
+                        pred_clusters = clustering_algo(curr_coref_out, pos_sent_idxs)
+                    elif len(pos_sent_idxs) == 1: # TODO: Do we need this here?
+                        pred_clusters = [[pos_sent_idxs[0]]]
 
                 data["doc_label"] = curr_doc_pred
                 data["token_labels"] = curr_token_preds

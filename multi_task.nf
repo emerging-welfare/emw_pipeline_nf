@@ -16,7 +16,14 @@ process multi_task_classifier {
     input:
 	val(in_json) from input_channel.collate(params.multi_task_batchsize)
     script:
+	if (params.doc_cascaded) {
 	"""
-        python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --input_dir $input_dir --out_dir $params.outdir --language $params.source_lang
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --input_dir $input_dir --out_dir $params.outdir --language $params.source_lang --doc_cascaded
 	"""
+	}
+	else {
+	"""
+	python3 $params.prefix/bin/multi_task_classifier_batch.py --input_files '$in_json' --input_dir $input_dir --out_dir $params.outdir --language $params.source_lang
+	"""
+	}
 }

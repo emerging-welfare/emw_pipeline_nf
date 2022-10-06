@@ -3,7 +3,7 @@
 // If we did run multi_task then outdir contains the stuff we need.
 input_dir = params.input_dir
 filename_wildcard = params.filename_wildcard
-if (params.RUN_MULTI_TASK) {
+if (params.do_text_extraction || params.RUN_MULTI_TASK) {
    input_dir = params.outdir // params.input_dir = params.outdir doesn't work for some reason
    filename_wildcard = "*.json"
 }
@@ -22,7 +22,14 @@ process sent_classifier {
     input:
 	val(in_json) from json_channel.collate(500) // maximum number of documents that linux allows in a single command. 130000/255
     script:
-        """
+	if (params.sent_cascaded) {
+	"""
+	python3 $params.prefix/bin/sent_classifier.py --input_files '$in_json' --out_dir $params.outdir --input_dir $input_dir --sent_batchsize $params.sent_batchsize --sent_cascaded
+	"""
+	}
+	else {
+	"""
 	python3 $params.prefix/bin/sent_classifier.py --input_files '$in_json' --out_dir $params.outdir --input_dir $input_dir --sent_batchsize $params.sent_batchsize
 	"""
+	}
 }

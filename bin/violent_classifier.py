@@ -1,9 +1,7 @@
 import argparse
 import json
 import requests
-from utils import write_to_json
-from utils import load_from_json
-from utils import dump_to_json
+from utils import write_to_json, read_from_json
 import json
 def get_args():
     '''
@@ -12,23 +10,27 @@ def get_args():
     parser = argparse.ArgumentParser(prog='violent_classifier.py',
                                      description='Violent FLASK Classififer Application ')
     parser.add_argument('--input_files', help="Input filenames")
+    parser.add_argument('--input_dir', help="Input folder")
     parser.add_argument('--out_dir', help="Output folder")
     args = parser.parse_args()
 
     return(args)
 
-def request(id,text):
-    r = requests.post(url = "http://localhost:4998/queries", json={'identifier':id,'text':text})
+def request(texts):
+    r = requests.post(url = "http://localhost:4996/queries", json={'texts':texts})
     return json.loads(r.text)
 
 
 if __name__ == "__main__":
     args = get_args()
-    if args.input_file != "": # Might happen when no document in the batch is predicted as positive
-        with open(args.out_dir+args.input_file.strip(), "r", encoding="utf-8") as f:
-             data = json.loads(f.read())
+    files=args.input_files.strip("[ ]").split(", ")
+    jsons = [read_from_json(args.input_dir + "/" + filename) for filename in files]
 
-        r = request(id=data["id"],text=data["text"])
-        data["is_violent"] = int(r["violent"])
-        data["urbanrural"] = r["urbanrural"]
-        write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
+    if len(jsons) > 0:
+        rtext = request([data["text"] for data in jsons])
+        for i, data in enumerate(jsons):
+            data["violent"] = rtext["violent_output"][i]
+
+            # TODO: Uncomment after making urbanrural multilingual
+            # data["urbanrural"] = r["urbanrural"]
+            write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)
