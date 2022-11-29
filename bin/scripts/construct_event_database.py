@@ -25,6 +25,10 @@ This process includes:
 # - If there is no place at all, store it nonetheless with no place name.
 # - If state name, store it nonetheless with no lat and long
 
+# TODO: Some district names belong to several states, so to disambiguate these names we put the state name in the actual district name.
+# But this makes matching to extracted text nearly impossible. To solve this issue, find the state names first and give precedence to
+# district names with found state names.
+
 def get_args():
     '''
     This function parses and return arguments passed in
@@ -83,9 +87,11 @@ def get_span(sent_tokens, span):
 
 def filename_to_url(filename):
     url = re.sub("___?", "://", filename)
+    url = re.sub("_", "-d3f4g5-", url)
+    url = re.sub("__comma__", ",", url)
     url = re.sub("_", "/", url)
     url = re.sub("-h6j7k8-", "%", url)
-    url = re.sub("\.json$", ".ece", url)
+    # url = re.sub("\.json$", ".ece", url)
     return url
 
 def int_to_str(x):
@@ -655,7 +661,8 @@ if __name__ == "__main__":
             out_json["year"] = int(json_data["html_year"])
             out_json["month"] = int(json_data["html_month"])
             out_json["day"] = int(json_data["html_day"])
-            # out_json["urbanrural"] = json_data["urbanrural"] # TODO(new): uncomment this later
+            if json_data.get("urbanrural", ""):
+                out_json["urbanrural"] = json_data["urbanrural"]
 
             if curr_place_name:
                 out_json["coordinate_dates"] = census_year

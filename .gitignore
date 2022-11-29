@@ -26,4 +26,5 @@ bin/scripts/*.json
 .ipynb_checkpoints
 **/.ipynb_checkpoints/
 bin/scripts/database_correlation/graphs/*
+bin/scripts/database_correlation/create_graph.py
 .gitignore

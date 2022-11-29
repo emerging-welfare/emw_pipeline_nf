@@ -11,10 +11,11 @@ export PYTHONPATH="$prefix/bin"
 [ ! -d "$output" ] && mkdir -p "$output"
 
 echo "
+    Multi task classifier gpus= $gpu_multi_task
     Sentence trigger sem gpu= $gpu_number_tsc
     Sentence participant sem gpu= $gpu_number_psc
     Sentence organizer sem gpu= $gpu_number_osc
-    Multi task classifier gpus= $gpu_multi_task
+    Violent classifier gpus= $gpu_number_violent
     "
 
 echo "input folder is =$input" >&2
@@ -107,7 +108,7 @@ fi
 if [ "$RUN_DOC" = true ] ; then
     echo "******** DOCUMENT LEVEL ********"
     if ! screen -ls | grep -q violent; then
-	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py
+	screen -S violent -dm python $prefix/bin/violent_classifier/classifier_flask.py --gpu_number_violent $gpu_number_violent --language $source_lang
 	sleep 30
     fi
     nextflow doc_level.nf -params-file params.json && killall screen &&  doc_finished=true ;

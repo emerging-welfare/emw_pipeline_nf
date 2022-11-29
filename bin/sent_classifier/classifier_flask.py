@@ -111,8 +111,9 @@ tokenizer = AutoTokenizer.from_pretrained(encoder_pretrained_model)
 args=get_args()
 language = args.language
 
-# NOTE: Flair model only works for English and Spanish.
+# NOTE: Flair model only works for English and Spanish. Also, we use CPU device, GPU overflows.
 FLAIR_CACHE_ROOT = HOME +  "/.pytorch_pretrained_bert"
+flair.device = torch.device("cpu")
 place_tagger = None
 if language == "english":
     place_tagger = flair.models.SequenceTagger.load("flair/ner-english-large") # flair/ner-english-fast

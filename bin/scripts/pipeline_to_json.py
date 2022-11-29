@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
             # NOTE : These are kept as dicts instead of lists of lists because they are sparse and usually we deal with sentences individually.
             data["trigger"], data["participant"], data["organizer"], data["target"], data["fname"], data["etime"], data["place"], data["flair"] = [dict() for _ in range(8)]
-            data = postprocess_tokens_and_labels(data)
+            data = postprocess_tokens_and_labels(data, args["cascade_sent"])
 
             # Flair output
             # NOTE : We want to be able to get all spans in a sentence without going
@@ -113,6 +113,10 @@ if __name__ == "__main__":
                     # TODO: We must have this field for construct_event_database script. Do something here
                     pass
 
+            assert(data.get("html_year", "") != "")
+            assert(data.get("html_month", "") != "")
+            assert(data.get("html_day", "") != "")
+
             # Remove unnecessary keys
             data.pop("token_labels")
             data.pop("doc_label")
@@ -132,12 +136,12 @@ if __name__ == "__main__":
         trigger_semantic : [-1,"demonst",-1,-1,"demonst","group_clash"],
         participant_semantic : [-1,"halk",-1,-1,"halk","işçi"],
         organizer_semantic : [-1,"Political_Party",-1,-1,"Political_Party","Labor_Union"],
-        tokens: [["A", "bird", "flew", "over", "Marakesh"], [...], ...]
+        tokens: [["A", "bird", "flew", "over", "Marakesh"], [...], ...],
         trigger: {
             1: [(3,3)] # All spans are exclusive
             3: [(1,2)] # If cascade_sent is false, we don't filter these regarding sent_labels.
             4: [(4,5), (7,7)]
-        }
+        },
         "participant": {}, # same as trigger
         "organizer": {}, # same as trigger
         "target": {}, # same as trigger
@@ -145,11 +149,12 @@ if __name__ == "__main__":
         "fname": {}, # same as trigger
         "place": {}, # same as trigger
         "flair": {}, # same as trigger
-
-        # Optional keys
-        "html_place": "Bihar",
         "html_year": "1992",
         "html_month": "11",
         "html_day": "05",
+
+        # Optional keys
+        "html_place": "Bihar",
+        "urbanrural": "urban"
     }
 """

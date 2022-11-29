@@ -12,6 +12,7 @@ def get_args():
     parser.add_argument('--input_files', help="Input filenames")
     parser.add_argument('--input_dir', help="Input folder")
     parser.add_argument('--out_dir', help="Output folder")
+    parser.add_argument('--language', help="The source language. Ex. 'english'")
     args = parser.parse_args()
 
     return(args)
@@ -30,7 +31,7 @@ if __name__ == "__main__":
         rtext = request([data["text"] for data in jsons])
         for i, data in enumerate(jsons):
             data["violent"] = rtext["violent_output"][i]
+            if args.language == "english":
+                data["urbanrural"] = rtext["urbanrural"]
 
-            # TODO: Uncomment after making urbanrural multilingual
-            # data["urbanrural"] = r["urbanrural"]
             write_to_json(data, data["id"], extension="json", out_dir=args.out_dir)

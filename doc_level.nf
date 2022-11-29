@@ -23,6 +23,6 @@ process violent_classifier {
 	val(in_json) from json_channel.collate(params.doc_batchsize)
     script:
     """
-    python3 $params.prefix/bin/violent_classifier.py --input_files "$in_json" --out_dir $params.outdir --input_dir $input_dir
+    python3 $params.prefix/bin/violent_classifier.py --input_files "$in_json" --out_dir $params.outdir --input_dir $input_dir --language $params.source_lang
     """
 }

@@ -13,7 +13,7 @@ dates_and_places_file=${3:-""} # If not given, default is ""
 
 # OPTIONS
 out_filename="database.json" # Output json file
-target_country="argentina" # "india", "south_africa", brazil", "argentina"
+target_country="brazil" # "india", "south_africa", brazil", "argentina"
 # sentence_cascade=false # If true: Negative sentences' token labels are negative
 place_folder="/home/omutlu/geocoding_dictionaries/$target_country/"
 # place_folder="~/geocoding_dictionaries/india/"
@@ -21,7 +21,7 @@ internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
 dist_has_locality="true"
-batch_name="lanacion_2022-04-30"
+batch_name="folha_2022-10-12"
 cascade_sent="true" # "true" if we auto assign "O" to each token of negatively predicted sentences.
 # TODO: cascade_doc as well?
 
@@ -42,7 +42,6 @@ if [[ -d $input_file_or_folder ]]; then # If folder
     fi
 
     echo "Post-processing finished. Post-processed file's name : processed_positive_docs.json (Keep this! Might be used later)"
-    # mv $out_folder/positive_docs2.json $out_folder/positive_docs.json
     input_file_or_folder="$out_folder/processed_positive_docs.json" # NOTE : You can use this file later to feed into this script.
 fi
 
