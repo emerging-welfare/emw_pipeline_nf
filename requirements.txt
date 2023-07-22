@@ -4,7 +4,7 @@
 requests==2.21.0
 Flask==0.12.2
 Flask-RESTful==0.3.6
-nltk==3.3
+nltk==3.6.6
 
 # Extract + Preprocess
 fuzzywuzzy==0.16.0
