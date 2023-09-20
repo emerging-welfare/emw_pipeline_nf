@@ -452,6 +452,13 @@ if __name__ == "__main__":
                 # Semantic stuff
                 trig_sem[json_data["trigger_semantic"][sent_idx]] += 1
                 part = json_data["participant_semantic"][sent_idx]
+
+                # NOTE: Temporary fix
+                if part == "Masses":
+                    part = "People"
+                elif part == "Proletariat":
+                    part = "Worker"
+
                 if part != "No":
                     part_sem[part] += 1
 
@@ -675,17 +682,17 @@ if __name__ == "__main__":
             out_json["eventcategory"] = trig_sem.most_common(1)[0][0]
 
             # If there is no sentence predicted with our predefined categories, then this
-            # event's category is "Other"
+            # event's category is "Unknown"
             if len(part_sem) == 0:
-                out_json["participant0category"] = "Other"
+                out_json["participant0category"] = "Unknown"
             else:
                 for j,part in enumerate(part_sem.most_common(4)):
                     out_json["participant" + str(j) + "category"] = part[0]
 
             # If there is no sentence predicted with our predefined categories, then this
-            # event's category is "Other"
+            # event's category is "Unknown"
             if len(org_sem) == 0:
-                out_json["organizer0category"] = "Other"
+                out_json["organizer0category"] = "Unknown"
             else:
                 for j,org in enumerate(org_sem.most_common(9)):
                     out_json["organizer" + str(j) + "category"] = org[0]

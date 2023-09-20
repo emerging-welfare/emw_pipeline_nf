@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     out_file = open(args["out_file"], "w", encoding="utf-8")
     if args["dates_and_places_file"] != "":
-        dates_and_places = pd.read_csv(args["dates_and_places_file"], sep="\t")
+        dates_and_places = pd.read_csv(args["dates_and_places_file"])#, sep="\t")
         # dates_and_places.filename = dates_and_places.filename.apply(change_extension)
         dates_and_places.loc[dates_and_places.place.isna(), "place"] = ""
 
@@ -104,20 +104,24 @@ if __name__ == "__main__":
 
             # Date and place from html
             if args["dates_and_places_file"] != "":
-                matches = dates_and_places[dates_and_places.url == data["url"]]
+                matches = dates_and_places[dates_and_places.filename == data["id"]]
+                # matches = dates_and_places[dates_and_places.url == data["url"]]
                 if len(matches) > 0:
                     data["html_year"], data["html_month"], data["html_day"] = matches.date.iloc[0].split("/")
                     if matches.place.iloc[0] != "":
                         data["html_place"] = matches.place.iloc[0]
                 else:
                     # TODO: We must have this field for construct_event_database script. Do something here
-                    pass
+                    print("Missing:", data["id"])
+                    continue
 
             assert(data.get("html_year", "") != "")
             assert(data.get("html_month", "") != "")
             assert(data.get("html_day", "") != "")
+            # data["html_place"] = data["location"]
 
             # Remove unnecessary keys
+            # data.pop("location")
             data.pop("token_labels")
             data.pop("doc_label")
             data.pop("text")

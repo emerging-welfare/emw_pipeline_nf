@@ -113,10 +113,11 @@ language = args.language
 
 # NOTE: Flair model only works for English and Spanish. Also, we use CPU device, GPU overflows.
 FLAIR_CACHE_ROOT = HOME +  "/.pytorch_pretrained_bert"
-flair.device = torch.device("cpu")
+# flair.device = torch.device("cpu")
+flair.device = torch.device("cuda:1")
 place_tagger = None
 if language == "english":
-    place_tagger = flair.models.SequenceTagger.load("flair/ner-english-large") # flair/ner-english-fast
+    place_tagger = flair.models.SequenceTagger.load("flair/ner-english-fast") # flair/ner-english-large
     place_tagger.eval()
 elif language == "spanish":
     place_tagger = flair.models.SequenceTagger.load("flair/ner-spanish-large") # flair/ner-multi-fast
@@ -152,7 +153,7 @@ trig_classifier.eval()
 # ######
 
 # ### Participant Semantic Categorization ###
-part_label_list = numpy.array(["Peasant", "Proletariat", "Professional", "Student", "Masses",
+part_label_list = numpy.array(["Peasant", "Worker", "Professional", "Student", "People",
                                "Politician", "Activist", "Militant", "Other", "No"])
 part_encoder_path = HOME+"/.pytorch_pretrained_bert/multilingual_part_sem_encoder.pt"
 part_classifier_path = HOME+"/.pytorch_pretrained_bert/multilingual_part_sem_classifier.pt"

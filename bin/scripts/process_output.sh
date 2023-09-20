@@ -13,15 +13,15 @@ dates_and_places_file=${3:-""} # If not given, default is ""
 
 # OPTIONS
 out_filename="database.json" # Output json file
-target_country="brazil" # "india", "south_africa", brazil", "argentina"
+target_country="argentina" # "india", "south_africa", brazil", "argentina"
 # sentence_cascade=false # If true: Negative sentences' token labels are negative
 place_folder="/home/omutlu/geocoding_dictionaries/$target_country/"
 # place_folder="~/geocoding_dictionaries/india/"
 internal="true" # If the database is for internal use only
 debug="true" # If you want to debug/evaluate the database output
 check_extracted_first="true" # When doing geocoding, whether to check for places in extracted places first, rather than html places
-dist_has_locality="true"
-batch_name="folha_2022-10-12"
+dist_has_locality="true" # false for india
+batch_name="lanacion_2022-12-08"
 cascade_sent="true" # "true" if we auto assign "O" to each token of negatively predicted sentences.
 # TODO: cascade_doc as well?
 
