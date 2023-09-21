@@ -2,7 +2,7 @@
 
 # Main
 requests==2.21.0
-Flask==0.12.2
+Flask==2.2.5
 Flask-RESTful==0.3.6
 nltk==3.3
 
