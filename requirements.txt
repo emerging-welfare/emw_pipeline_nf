@@ -9,7 +9,7 @@ nltk==3.3
 # Extract + Preprocess
 fuzzywuzzy==0.16.0
 jusText==2.2.0
-lxml==4.2.0
+lxml==4.9.1
 
 # Classifier
 torch==1.1.0
